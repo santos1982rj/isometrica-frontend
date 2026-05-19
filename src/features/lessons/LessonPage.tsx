@@ -1,18 +1,38 @@
-import { ArrowLeft, Clock3, Lock } from 'lucide-react';
+import { ArrowLeft, CheckCircle2, Clock3, Lock } from 'lucide-react';
 import { useNavigate, useParams } from 'react-router-dom';
-import { useQuery } from '@tanstack/react-query';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 
 import { LessonPlayer } from '../player/components/LessonPlayer';
 import { getLessonById } from './lessons.service';
+import { completeLesson, getMyProgress } from '../progress/progress.service';
 
 export function LessonPage() {
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
   const { id } = useParams();
 
   const { data: lesson, isLoading, isError } = useQuery({
     queryKey: ['lesson', id],
     queryFn: () => getLessonById(id!),
     enabled: !!id,
+  });
+
+  const { data: progress } = useQuery({
+    queryKey: ['progress'],
+    queryFn: getMyProgress,
+  });
+
+  const isCompleted = progress?.some(
+    (item) => item.aulaId === lesson?.id && item.concluida,
+  );
+
+  const completeLessonMutation = useMutation({
+    mutationFn: () => completeLesson(id!),
+    onSuccess: () => {
+      queryClient.invalidateQueries({
+        queryKey: ['progress'],
+      });
+    },
   });
 
   if (isLoading) {
@@ -50,9 +70,18 @@ export function LessonPage() {
               {lesson.modulo.curso.titulo}
             </p>
 
-            <h1 className="mt-3 text-3xl font-bold text-slate-50">
-              {lesson.titulo}
-            </h1>
+            <div className="mt-3 flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+              <h1 className="text-3xl font-bold text-slate-50">
+                {lesson.titulo}
+              </h1>
+
+              {isCompleted && (
+                <span className="flex w-fit items-center gap-2 rounded-full bg-emerald-400/10 px-4 py-2 text-sm font-semibold text-emerald-300 ring-1 ring-emerald-300/20">
+                  <CheckCircle2 className="h-4 w-4" />
+                  Aula concluída
+                </span>
+              )}
+            </div>
 
             {lesson.descricao && (
               <p className="mt-4 leading-7 text-slate-300">
@@ -89,8 +118,17 @@ export function LessonPage() {
             </div>
           </div>
 
-          <button className="mt-6 h-11 w-full rounded-2xl bg-emerald-400/90 font-semibold text-slate-950 transition hover:bg-emerald-300">
-            Marcar como concluída
+          <button
+            disabled={isCompleted || completeLessonMutation.isPending}
+            onClick={() => completeLessonMutation.mutate()}
+            className="mt-6 flex h-11 w-full items-center justify-center gap-2 rounded-2xl bg-emerald-400/90 font-semibold text-slate-950 transition hover:bg-emerald-300 disabled:cursor-not-allowed disabled:bg-emerald-400/30 disabled:text-slate-300"
+          >
+            <CheckCircle2 className="h-5 w-5" />
+            {isCompleted
+              ? 'Aula concluída'
+              : completeLessonMutation.isPending
+                ? 'Salvando...'
+                : 'Marcar como concluída'}
           </button>
         </aside>
       </div>

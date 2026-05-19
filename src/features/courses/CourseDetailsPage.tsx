@@ -1,5 +1,6 @@
 import {
   BookOpen,
+  CheckCircle2,
   Clock3,
   Crown,
   Lock,
@@ -10,7 +11,7 @@ import { useNavigate, useParams } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 
 import { getCourseBySlug } from './courses.service';
-
+import { getMyProgress } from '../progress/progress.service';
 
 function formatLevel(level: string) {
   const labels = {
@@ -23,13 +24,18 @@ function formatLevel(level: string) {
 }
 
 export function CourseDetailsPage() {
-    const navigate = useNavigate();
-    const { slug } = useParams();
+  const navigate = useNavigate();
+  const { slug } = useParams();
 
   const { data: course, isLoading, isError } = useQuery({
     queryKey: ['course-details', slug],
     queryFn: () => getCourseBySlug(slug!),
     enabled: !!slug,
+  });
+
+  const { data: progress } = useQuery({
+    queryKey: ['progress'],
+    queryFn: getMyProgress,
   });
 
   if (isLoading) {
@@ -49,6 +55,26 @@ export function CourseDetailsPage() {
       </section>
     );
   }
+
+  const totalLessons = course.modulos.reduce(
+    (total, module) => total + module.aulas.length,
+    0,
+  );
+
+  const completedLessons = course.modulos.reduce((total, module) => {
+    const completedInModule = module.aulas.filter((lesson) =>
+      progress?.some(
+        (item) => item.aulaId === lesson.id && item.concluida,
+      ),
+    ).length;
+
+    return total + completedInModule;
+  }, 0);
+
+  const completionPercentage =
+    totalLessons > 0
+      ? Math.round((completedLessons / totalLessons) * 100)
+      : 0;
 
   return (
     <section className="mx-auto max-w-7xl">
@@ -108,7 +134,36 @@ export function CourseDetailsPage() {
               </>
             )}
 
-            <button className="mt-8 h-12 w-full rounded-2xl bg-cyan-400/90 font-semibold text-slate-950 transition hover:bg-cyan-300">
+            <div className="mt-8">
+              <div className="mb-2 flex items-center justify-between text-sm">
+                <span className="text-slate-300">Progresso</span>
+                <span className="numeric text-cyan-300">
+                  {completionPercentage}%
+                </span>
+              </div>
+
+              <div className="h-3 overflow-hidden rounded-full bg-white/10">
+                <div
+                  className="h-full rounded-full bg-cyan-300 transition-all"
+                  style={{ width: `${completionPercentage}%` }}
+                />
+              </div>
+
+              <p className="mt-3 text-sm text-slate-400">
+                {completedLessons} de {totalLessons} aulas concluídas.
+              </p>
+            </div>
+
+            <button
+              onClick={() => {
+                const firstLesson = course.modulos[0]?.aulas[0];
+
+                if (firstLesson) {
+                  navigate(`/lessons/${firstLesson.id}`);
+                }
+              }}
+              className="mt-8 h-12 w-full rounded-2xl bg-cyan-400/90 font-semibold text-slate-950 transition hover:bg-cyan-300"
+            >
               Iniciar disciplina
             </button>
           </div>
@@ -116,79 +171,139 @@ export function CourseDetailsPage() {
       </div>
 
       <div className="mt-8 space-y-5">
-        {course.modulos.map((module) => (
-          <article
-            key={module.id}
-            className="liquid-card rounded-3xl p-6"
-          >
-            <div className="mb-6">
-              <p className="text-xs font-semibold uppercase tracking-[0.22em] text-cyan-300">
-                Módulo {module.ordem}
-              </p>
+        {course.modulos.map((module) => {
+          const moduleTotalLessons = module.aulas.length;
 
-              <h2 className="mt-2 text-2xl font-semibold text-slate-50">
-                {module.titulo}
-              </h2>
+          const moduleCompletedLessons = module.aulas.filter((lesson) =>
+            progress?.some(
+              (item) => item.aulaId === lesson.id && item.concluida,
+            ),
+          ).length;
 
-              {module.descricao && (
-                <p className="mt-3 max-w-3xl leading-7 text-slate-300">
-                  {module.descricao}
-                </p>
-              )}
-            </div>
+          const modulePercentage =
+            moduleTotalLessons > 0
+              ? Math.round(
+                  (moduleCompletedLessons / moduleTotalLessons) * 100,
+                )
+              : 0;
 
-            <div className="space-y-3">
-              {module.aulas.map((lesson) => (
-                <div
-                  key={lesson.id}
-                  className="flex flex-col gap-4 rounded-2xl border border-white/10 bg-white/[0.03] p-5 transition hover:bg-white/[0.05] md:flex-row md:items-center md:justify-between"
-                >
-                  <div className="flex items-start gap-4">
-                    <div className="mt-1 flex h-11 w-11 items-center justify-center rounded-2xl bg-cyan-400/10 text-cyan-300 ring-1 ring-cyan-300/20">
-                      <PlayCircle className="h-5 w-5" />
-                    </div>
+          return (
+            <article
+              key={module.id}
+              className="liquid-card rounded-3xl p-6"
+            >
+              <div className="mb-6 flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
+                <div>
+                  <p className="text-xs font-semibold uppercase tracking-[0.22em] text-cyan-300">
+                    Módulo {module.ordem}
+                  </p>
 
-                    <div>
-                      <h3 className="text-lg font-medium text-slate-50">
-                        {lesson.titulo}
-                      </h3>
+                  <h2 className="mt-2 text-2xl font-semibold text-slate-50">
+                    {module.titulo}
+                  </h2>
 
-                      {lesson.descricao && (
-                        <p className="mt-2 max-w-2xl text-sm leading-6 text-slate-300">
-                          {lesson.descricao}
-                        </p>
-                      )}
-                    </div>
+                  {module.descricao && (
+                    <p className="mt-3 max-w-3xl leading-7 text-slate-300">
+                      {module.descricao}
+                    </p>
+                  )}
+                </div>
+
+                <div className="min-w-40 rounded-2xl border border-white/10 bg-white/[0.03] p-4">
+                  <div className="mb-2 flex items-center justify-between text-sm">
+                    <span className="text-slate-400">Conclusão</span>
+                    <span className="numeric text-cyan-300">
+                      {modulePercentage}%
+                    </span>
                   </div>
 
-                  <div className="flex flex-wrap items-center gap-3">
-                    <div className="rounded-2xl border border-white/10 bg-black/10 px-4 py-2 text-sm text-slate-300">
-                      {lesson.duracao ?? 0} min
-                    </div>
-
-                    {lesson.isGratuita ? (
-                      <span className="rounded-full bg-emerald-400/10 px-3 py-1 text-xs font-semibold text-emerald-300 ring-1 ring-emerald-300/20">
-                        Gratuita
-                      </span>
-                    ) : (
-                      <span className="flex items-center gap-1 rounded-full bg-orange-400/10 px-3 py-1 text-xs font-semibold text-orange-300 ring-1 ring-orange-300/20">
-                        <Lock className="h-3 w-3" />
-                        Premium
-                      </span>
-                    )}
-
-                    <button
-  onClick={() => navigate(`/lessons/${lesson.id}`)}
-  className="h-10 rounded-2xl border border-cyan-300/20 bg-cyan-400/10 px-5 text-sm font-semibold text-cyan-200 transition hover:bg-cyan-400/20"
->
-  Abrir aula
-</button>
+                  <div className="h-2 overflow-hidden rounded-full bg-white/10">
+                    <div
+                      className="h-full rounded-full bg-cyan-300 transition-all"
+                      style={{ width: `${modulePercentage}%` }}
+                    />
                   </div>
                 </div>
-              ))}
-            </div>
-          </article>
-        ))}
+              </div>
+
+              <div className="space-y-3">
+                {module.aulas.map((lesson) => {
+                  const isLessonCompleted = progress?.some(
+                    (item) =>
+                      item.aulaId === lesson.id && item.concluida,
+                  );
+
+                  return (
+                    <div
+                      key={lesson.id}
+                      className="flex flex-col gap-4 rounded-2xl border border-white/10 bg-white/[0.03] p-5 transition hover:bg-white/[0.05] md:flex-row md:items-center md:justify-between"
+                    >
+                      <div className="flex items-start gap-4">
+                        <div
+                          className={[
+                            'mt-1 flex h-11 w-11 items-center justify-center rounded-2xl ring-1',
+                            isLessonCompleted
+                              ? 'bg-emerald-400/10 text-emerald-300 ring-emerald-300/20'
+                              : 'bg-cyan-400/10 text-cyan-300 ring-cyan-300/20',
+                          ].join(' ')}
+                        >
+                          {isLessonCompleted ? (
+                            <CheckCircle2 className="h-5 w-5" />
+                          ) : (
+                            <PlayCircle className="h-5 w-5" />
+                          )}
+                        </div>
+
+                        <div>
+                          <h3 className="text-lg font-medium text-slate-50">
+                            {lesson.titulo}
+                          </h3>
+
+                          {lesson.descricao && (
+                            <p className="mt-2 max-w-2xl text-sm leading-6 text-slate-300">
+                              {lesson.descricao}
+                            </p>
+                          )}
+                        </div>
+                      </div>
+
+                      <div className="flex flex-wrap items-center gap-3">
+                        <div className="rounded-2xl border border-white/10 bg-black/10 px-4 py-2 text-sm text-slate-300">
+                          {lesson.duracao ?? 0} min
+                        </div>
+
+                        {isLessonCompleted && (
+                          <span className="flex items-center gap-1 rounded-full bg-emerald-400/10 px-3 py-1 text-xs font-semibold text-emerald-300 ring-1 ring-emerald-300/20">
+                            <CheckCircle2 className="h-3 w-3" />
+                            Concluída
+                          </span>
+                        )}
+
+                        {lesson.isGratuita ? (
+                          <span className="rounded-full bg-emerald-400/10 px-3 py-1 text-xs font-semibold text-emerald-300 ring-1 ring-emerald-300/20">
+                            Gratuita
+                          </span>
+                        ) : (
+                          <span className="flex items-center gap-1 rounded-full bg-orange-400/10 px-3 py-1 text-xs font-semibold text-orange-300 ring-1 ring-orange-300/20">
+                            <Lock className="h-3 w-3" />
+                            Premium
+                          </span>
+                        )}
+
+                        <button
+                          onClick={() => navigate(`/lessons/${lesson.id}`)}
+                          className="h-10 rounded-2xl border border-cyan-300/20 bg-cyan-400/10 px-5 text-sm font-semibold text-cyan-200 transition hover:bg-cyan-400/20"
+                        >
+                          Abrir aula
+                        </button>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </article>
+          );
+        })}
       </div>
     </section>
   );

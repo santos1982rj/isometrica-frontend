@@ -1,73 +1,203 @@
-# React + TypeScript + Vite
+# ISOMÉTRICA — Frontend
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+Frontend da plataforma acadêmica ISOMÉTRICA.
 
-Currently, two official plugins are available:
+Sistema desenvolvido para estudantes de engenharia, com foco em:
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
+* clareza visual;
+* rigor técnico;
+* experiência acadêmica;
+* evolução de aprendizado.
 
-## React Compiler
+---
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+# Stack
 
-## Expanding the ESLint configuration
+* React
+* Vite
+* TypeScript
+* Tailwind CSS v4
+* TanStack Query
+* React Router
+* Zustand
+* Lucide React
 
-If you are developing a production application, we recommend updating the configuration to enable type-aware lint rules:
+---
 
-```js
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
+# Filosofia visual
 
-      // Remove tseslint.configs.recommended and replace with this
-      tseslint.configs.recommendedTypeChecked,
-      // Alternatively, use this for stricter rules
-      tseslint.configs.strictTypeChecked,
-      // Optionally, add this for stylistic rules
-      tseslint.configs.stylisticTypeChecked,
+A interface da ISOMÉTRICA busca transmitir:
 
-      // Other configs...
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
+* ambiente técnico;
+* software acadêmico;
+* clareza estrutural;
+* profundidade funcional.
+
+Não buscamos:
+
+* visual infantil;
+* excesso de gamificação;
+* UI barulhenta.
+
+---
+
+# Design System
+
+## Conceitos atuais
+
+* Liquid Glass
+* Bento Grid
+* Dark mode técnico
+* Tokens semânticos
+* Componentização modular
+
+---
+
+## Futuro
+
+* Light mode acadêmico;
+* visualização matemática avançada;
+* dashboards analíticos;
+* mapas de domínio.
+
+---
+
+# Estrutura
+
+```txt
+src/
+├── core/
+├── routes/
+├── styles/
+├── features/
+│   ├── auth/
+│   ├── dashboard/
+│   ├── courses/
+│   ├── lessons/
+│   ├── player/
+│   └── progress/
 ```
 
-You can also install [eslint-plugin-react-x](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-x) and [eslint-plugin-react-dom](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-dom) for React-specific lint rules:
+---
 
-```js
-// eslint.config.js
-import reactX from 'eslint-plugin-react-x'
-import reactDom from 'eslint-plugin-react-dom'
+# Funcionalidades atuais
 
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-      // Enable lint rules for React
-      reactX.configs['recommended-typescript'],
-      // Enable lint rules for React DOM
-      reactDom.configs.recommended,
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
+## Auth
+
+* login;
+* sessão persistida;
+* autenticação JWT.
+
+---
+
+## Dashboard
+
+* navegação principal;
+* shell da aplicação.
+
+---
+
+## Courses
+
+* listagem de disciplinas;
+* visual acadêmico;
+* progresso.
+
+---
+
+## Lessons
+
+* player MVP;
+* visualização de aulas;
+* persistência de conclusão.
+
+---
+
+## Progress
+
+* conclusão de aula;
+* progresso visual;
+* progresso por módulo;
+* progresso por disciplina.
+
+---
+
+# Instalação
+
+## Clonar
+
+```bash
+git clone https://github.com/santos1982rj/isometrica-frontend.git
 ```
+
+---
+
+## Instalar dependências
+
+```bash
+npm install
+```
+
+---
+
+# Variáveis de ambiente
+
+Crie um `.env`:
+
+```env
+VITE_API_URL=http://localhost:3333
+```
+
+---
+
+# Rodar projeto
+
+```bash
+npm run dev
+```
+
+---
+
+# Build
+
+```bash
+npm run build
+```
+
+---
+
+# Objetivo do produto
+
+A ISOMÉTRICA não é apenas:
+
+* plataforma de cursos;
+* catálogo de aulas;
+* resolvedor automático.
+
+A proposta é criar:
+
+> um ambiente operacional acadêmico para estudantes de engenharia.
+
+---
+
+# Roadmap
+
+## Próximas etapas
+
+* player avançado;
+* analytics acadêmico;
+* mapa de domínio;
+* exercícios;
+* IA contextual;
+* study-validation;
+* modo pré-prova;
+* light mode;
+* simulados;
+* ferramentas técnicas.
+
+---
+
+# Visão
+
+Clareza para estudar.
+Rigor para evoluir.
