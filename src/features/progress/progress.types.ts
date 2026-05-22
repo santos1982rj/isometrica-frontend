@@ -3,6 +3,7 @@ export type LessonProgress = {
   aulaId: string;
   concluida: boolean;
   tempoAssistido: number | null;
+  notas: string | null;
   concluidaEm: string | null;
   aula: {
     id: string;
@@ -25,5 +26,13 @@ export type ProgressResponse = {
 };
 
 export type CompleteLessonResponse = {
+  progress: LessonProgress;
+};
+
+export type UpdateWatchTimeResponse = {
+  progress: LessonProgress;
+};
+
+export type UpdateLessonNotesResponse = {
   progress: LessonProgress;
 };

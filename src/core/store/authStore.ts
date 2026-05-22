@@ -7,9 +7,15 @@ type User = {
   id: string;
   nome: string;
   email: string;
+  avatar?: string | null;
   role: string;
   xpTotal: number;
   nivel: number;
+  emailVerifiedAt?: string | null;
+  termsAcceptedAt?: string | null;
+  privacyAcceptedAt?: string | null;
+  marketingConsent?: boolean;
+  trackingConsent?: boolean;
 };
 
 type LoginInput = {
@@ -17,11 +23,20 @@ type LoginInput = {
   senha: string;
 };
 
+type RegisterInput = LoginInput & {
+  nome: string;
+  acceptTerms: boolean;
+  acceptPrivacy: boolean;
+  marketingConsent: boolean;
+  trackingConsent: boolean;
+};
+
 type AuthState = {
   user: User | null;
   token: string | null;
 
   signIn: (data: LoginInput) => Promise<void>;
+  signUp: (data: RegisterInput) => Promise<void>;
   signOut: () => void;
   loadUser: () => Promise<void>;
 };
@@ -40,6 +55,22 @@ export const useAuthStore = create<AuthState>()(
       async signIn(data) {
         const response = await api.post<LoginResponse>(
           '/auth/login',
+          data,
+        );
+
+        const { token, user } = response.data;
+
+        localStorage.setItem('@isometrica:token', token);
+
+        set({
+          token,
+          user,
+        });
+      },
+
+      async signUp(data) {
+        const response = await api.post<LoginResponse>(
+          '/auth/register',
           data,
         );
 

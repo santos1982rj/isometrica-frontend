@@ -2,6 +2,7 @@ import { useEffect } from 'react';
 
 import { AppRoutes } from './routes/AppRoutes';
 import { useAuthStore } from './core/store/authStore';
+import { TrackingScripts } from './features/tracking/TrackingScripts';
 
 function App() {
   const loadUser = useAuthStore((state) => state.loadUser);
@@ -10,7 +11,12 @@ function App() {
     loadUser();
   }, [loadUser]);
 
-  return <AppRoutes />;
+  return (
+    <>
+      <TrackingScripts />
+      <AppRoutes />
+    </>
+  );
 }
 
 export default App;

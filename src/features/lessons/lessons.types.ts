@@ -8,6 +8,7 @@ export type LessonDetails = {
   duracao: number | null;
   ordem: number;
   isGratuita: boolean;
+  locked: boolean;
   modulo: {
     id: string;
     titulo: string;

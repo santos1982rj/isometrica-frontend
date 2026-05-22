@@ -1,126 +1,225 @@
-import { BookOpen, Clock, Crown, Layers3 } from 'lucide-react';
+import { ArrowRight, BookOpen, Clock3, Crown, Filter, GraduationCap } from 'lucide-react';
+import { useMemo, useState } from 'react';
+import { Link } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
-import { useNavigate } from 'react-router-dom';
 
+import { PageLoader } from '../../components/loaders/PageLoader';
 import { listCourses } from './courses.service';
+import { useAuthStore } from '../../core/store/authStore';
+
+type CourseFilter = 'ALL' | 'ENROLLED' | 'FREE' | 'PREMIUM';
+
+const filters: Array<{ id: CourseFilter; label: string }> = [
+  { id: 'ALL', label: 'Todas' },
+  { id: 'ENROLLED', label: 'Matriculadas' },
+  { id: 'FREE', label: 'Gratuitas' },
+  { id: 'PREMIUM', label: 'Premium' },
+];
 
 function formatLevel(level: string) {
   const labels = {
     INICIANTE: 'Iniciante',
-    INTERMEDIARIO: 'Intermediário',
-    AVANCADO: 'Avançado',
+    INTERMEDIARIO: 'Intermediario',
+    AVANCADO: 'Avancado',
   };
 
   return labels[level as keyof typeof labels] ?? level;
 }
 
 export function CoursesPage() {
-  const navigate = useNavigate();
-
-  const { data: courses, isLoading, isError } = useQuery({
+  const token = useAuthStore((state) => state.token);
+  const [filter, setFilter] = useState<CourseFilter>('ALL');
+  const { data: courses = [], isLoading, isError } = useQuery({
     queryKey: ['courses'],
     queryFn: listCourses,
   });
 
+  const filteredCourses = useMemo(() => {
+    if (filter === 'ENROLLED') {
+      return courses.filter((course) => course.isEnrolled);
+    }
+
+    if (filter === 'FREE') {
+      return courses.filter((course) => !course.isPremium);
+    }
+
+    if (filter === 'PREMIUM') {
+      return courses.filter((course) => course.isPremium);
+    }
+
+    return courses;
+  }, [courses, filter]);
+
+  const enrolledCount = courses.filter((course) => course.isEnrolled).length;
+  const freeCount = courses.filter((course) => !course.isPremium).length;
+  const visibleFilters = token
+    ? filters
+    : filters.filter((item) => item.id !== 'ENROLLED');
+
   if (isLoading) {
-    return (
-      <section className="liquid-card rounded-3xl p-6">
-        <p className="text-slate-300">Carregando disciplinas...</p>
-      </section>
-    );
+    return <PageLoader />;
   }
 
   if (isError) {
     return (
-      <section className="liquid-card rounded-3xl p-6">
-        <p className="text-red-300">
-          Não foi possível carregar as disciplinas.
-        </p>
+      <section className="rounded-lg border border-red-500/20 bg-red-500/10 p-5 text-sm font-semibold text-red-300">
+        Não foi possível carregar as disciplinas.
       </section>
     );
   }
 
   return (
-    <section className="mx-auto max-w-7xl">
-      <div className="mb-8 flex flex-col justify-between gap-4 md:flex-row md:items-end">
-        <div>
-          <p className="text-xs font-semibold uppercase tracking-[0.24em] text-cyan-300">
-            Disciplinas
-          </p>
+    <section className="w-full space-y-4">
+      <header className="overflow-hidden rounded-xl border border-[var(--border)] bg-[var(--surface)] shadow-sm shadow-black/5">
+        <div className="grid lg:grid-cols-[1fr_auto]">
+          <div className="p-4 sm:p-6">
+            <div className="flex flex-wrap items-center gap-2 text-xs font-semibold uppercase text-[var(--text-muted)]">
+              <span className="rounded-md border border-[var(--border)] bg-[var(--surface-soft)] px-2 py-1 text-[var(--iso-primary)]">
+                Catálogo
+              </span>
+              <span>Disciplinas</span>
+            </div>
+            <h1 className="mt-4 max-w-3xl text-2xl font-semibold text-[var(--text)] sm:text-3xl">
+              Cursos organizados para estudar com continuidade.
+            </h1>
+            <p className="mt-3 max-w-3xl text-sm leading-6 text-[var(--text-muted)]">
+              Filtre por acesso, abra a trilha certa e acompanhe sua evolução sem perder o contexto do conteúdo.
+            </p>
+          </div>
 
-          <h2 className="mt-2 text-3xl font-bold text-slate-50">
-            Trilhas acadêmicas de engenharia
-          </h2>
-
-          <p className="mt-3 max-w-2xl leading-7 text-slate-300">
-            Conteúdos pensados para ajudar o estudante a entender conceitos,
-            validar raciocínios e evoluir com rigor técnico.
-          </p>
+          <div className="grid min-w-0 grid-cols-3 border-t border-[var(--border)] bg-[var(--surface-soft)] lg:min-w-[24rem] lg:border-l lg:border-t-0">
+            {[
+              { label: 'Cursos', value: courses.length },
+              {
+                label: token ? 'Matrículas' : 'Premium',
+                value: token
+                  ? enrolledCount
+                  : courses.filter((course) => course.isPremium).length,
+              },
+              { label: 'Livres', value: freeCount },
+            ].map((item) => (
+              <div key={item.label} className="border-r border-[var(--border)] p-4 last:border-r-0 sm:p-5">
+                <span className="block text-xs font-semibold uppercase text-[var(--text-muted)]">{item.label}</span>
+                <strong className="numeric mt-3 block text-2xl font-semibold text-[var(--text)]">{item.value}</strong>
+              </div>
+            ))}
+          </div>
         </div>
-      </div>
+      </header>
 
-      <div className="grid gap-5 lg:grid-cols-3">
-        {courses?.map((course) => (
+      <section className="rounded-xl border border-[var(--border)] bg-[var(--surface)] p-3 shadow-sm shadow-black/5 sm:p-4">
+        <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+          <div className="flex items-center gap-2 text-sm font-medium text-[var(--text-muted)]">
+            <Filter className="h-4 w-4 text-[var(--iso-primary)]" />
+            {filteredCourses.length} disciplinas visíveis
+          </div>
+          <div className="flex flex-wrap gap-2">
+            {visibleFilters.map((item) => (
+              <button
+                key={item.id}
+                type="button"
+                onClick={() => setFilter(item.id)}
+                className={[
+                  'min-h-9 rounded-md border px-3 text-sm font-semibold transition',
+                  filter === item.id
+                    ? 'border-[var(--accent-border)] bg-[var(--iso-primary-soft)] text-[var(--iso-primary)]'
+                    : 'border-[var(--border)] bg-[var(--surface-soft)] text-[var(--text-soft)] hover:border-[var(--border-strong)] hover:text-[var(--text)]',
+                ].join(' ')}
+              >
+                {item.label}
+              </button>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      <section className="grid gap-4 md:grid-cols-2 2xl:grid-cols-3">
+        {filteredCourses.map((course) => (
           <article
             key={course.id}
-            className="liquid-card group rounded-3xl p-6 transition hover:-translate-y-1"
+            className="group flex min-h-[25rem] flex-col overflow-hidden rounded-xl border border-[var(--border)] bg-[var(--surface)] shadow-sm shadow-black/5 transition hover:border-[var(--border-strong)]"
           >
-            <div className="mb-8 flex items-start justify-between gap-4">
-              <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-cyan-400/10 text-cyan-300 ring-1 ring-cyan-300/20">
-                <BookOpen className="h-6 w-6" />
+            {course.imagem ? (
+              <img className="h-40 w-full border-b border-[var(--border)] object-cover" src={course.imagem} alt="" />
+            ) : (
+              <div className="flex h-40 items-end border-b border-[var(--border)] bg-[var(--surface-soft)] p-4">
+                <div className="grid h-12 w-12 place-items-center rounded-lg border border-[var(--border)] bg-[var(--surface)] text-[var(--iso-primary)]">
+                  <GraduationCap className="h-6 w-6" />
+                </div>
               </div>
+            )}
 
-              {course.isPremium ? (
-                <span className="flex items-center gap-1 rounded-full bg-orange-400/10 px-3 py-1 text-xs font-semibold text-orange-300 ring-1 ring-orange-300/20">
-                  <Crown className="h-3.5 w-3.5" />
-                  Premium
+            <div className="flex min-h-0 flex-1 flex-col p-4 sm:p-5">
+              <div className="flex flex-wrap items-center gap-2">
+                <span className="rounded-md border border-[var(--border)] bg-[var(--surface-soft)] px-2 py-1 text-xs font-semibold text-[var(--text-soft)]">
+                  {course.categoria ?? 'Engenharia'}
                 </span>
-              ) : (
-                <span className="rounded-full bg-emerald-400/10 px-3 py-1 text-xs font-semibold text-emerald-300 ring-1 ring-emerald-300/20">
-                  Grátis
+                {course.isEnrolled && (
+                  <span className="rounded-md bg-[var(--iso-primary-soft)] px-2 py-1 text-xs font-semibold text-[var(--iso-primary)]">
+                    Matriculado
+                  </span>
+                )}
+                <span className={[
+                  'inline-flex items-center gap-1 rounded-md px-2 py-1 text-xs font-semibold',
+                  course.isPremium
+                    ? 'bg-[var(--accent-bg)] text-[var(--accent)]'
+                    : 'bg-[rgba(56,178,172,0.12)] text-[var(--success-500)]',
+                ].join(' ')}>
+                  {course.isPremium && <Crown className="h-3 w-3" />}
+                  {course.isPremium ? 'Premium' : 'Gratuito'}
                 </span>
-              )}
+              </div>
+
+              <h2 className="mt-4 line-clamp-2 text-xl font-semibold text-[var(--text)]">{course.titulo}</h2>
+              <p className="mt-2 line-clamp-3 text-sm leading-6 text-[var(--text-muted)]">
+                {course.resumo ?? course.descricao}
+              </p>
+
+              <div className="mt-4 grid grid-cols-3 gap-2">
+                <div className="rounded-md border border-[var(--border)] bg-[var(--surface-soft)] p-2.5">
+                  <BookOpen className="h-4 w-4 text-[var(--iso-primary)]" />
+                  <strong className="numeric mt-2 block text-sm font-semibold text-[var(--text)]">{course.totalModulos}</strong>
+                  <span className="text-xs text-[var(--text-muted)]">módulos</span>
+                </div>
+                <div className="rounded-md border border-[var(--border)] bg-[var(--surface-soft)] p-2.5">
+                  <Clock3 className="h-4 w-4 text-[var(--accent)]" />
+                  <strong className="numeric mt-2 block text-sm font-semibold text-[var(--text)]">{course.cargaHoraria ?? 0}h</strong>
+                  <span className="text-xs text-[var(--text-muted)]">carga</span>
+                </div>
+                <div className="rounded-md border border-[var(--border)] bg-[var(--surface-soft)] p-2.5">
+                  <GraduationCap className="h-4 w-4 text-[var(--success-500)]" />
+                  <strong className="mt-2 block truncate text-sm font-semibold text-[var(--text)]">{formatLevel(course.nivel)}</strong>
+                  <span className="text-xs text-[var(--text-muted)]">nível</span>
+                </div>
+              </div>
+
+              <div className="mt-auto flex items-end justify-between gap-3 border-t border-[var(--border)] pt-4">
+                <div>
+                  <span className="block text-xs font-semibold uppercase text-[var(--text-muted)]">
+                    {course.isPremium ? 'Investimento' : 'Acesso'}
+                  </span>
+                  <strong className="numeric mt-1 block text-xl font-semibold text-[var(--text)]">
+                    {course.isPremium ? `R$ ${course.preco?.toFixed(2)}` : 'Livre'}
+                  </strong>
+                </div>
+                <Link
+                  className="inline-flex min-h-10 items-center gap-2 rounded-md bg-[var(--iso-primary)] px-3 text-sm font-semibold text-white transition hover:brightness-110"
+                  to={`/courses/${course.slug}`}
+                >
+                  {course.isEnrolled ? 'Continuar' : 'Abrir'}
+                  <ArrowRight className="h-4 w-4" />
+                </Link>
+              </div>
             </div>
-
-            <p className="mb-2 text-xs font-semibold uppercase tracking-[0.2em] text-slate-400">
-              {course.categoria ?? 'Engenharia'}
-            </p>
-
-            <h3 className="text-2xl font-semibold text-slate-50">
-              {course.titulo}
-            </h3>
-
-            <p className="mt-3 min-h-24 leading-7 text-slate-300">
-              {course.resumo ?? course.descricao}
-            </p>
-
-            <div className="mt-6 grid gap-3 text-sm text-slate-300">
-              <div className="flex items-center gap-2">
-                <Layers3 className="h-4 w-4 text-cyan-300" />
-                {course.totalModulos} módulos
-              </div>
-
-              <div className="flex items-center gap-2">
-                <Clock className="h-4 w-4 text-cyan-300" />
-                {course.cargaHoraria ?? 0} horas
-              </div>
-
-              <div className="rounded-2xl border border-white/10 bg-white/[0.03] px-4 py-3">
-                Nível: {formatLevel(course.nivel)}
-              </div>
-            </div>
-
-            <button
-              onClick={() => navigate(`/courses/${course.slug}`)}
-              className="mt-8 h-11 w-full rounded-2xl bg-cyan-400/90 font-semibold text-slate-950 transition hover:bg-cyan-300"
-            >
-              Ver trilha
-            </button>
-
-            <div className="isometric-icon-layer text-7xl">⌬</div>
           </article>
         ))}
-      </div>
+
+        {filteredCourses.length === 0 && (
+          <div className="rounded-xl border border-dashed border-[var(--border)] bg-[var(--surface)] p-6 text-sm text-[var(--text-muted)] md:col-span-2 2xl:col-span-3">
+            Nenhuma disciplina encontrada neste filtro.
+          </div>
+        )}
+      </section>
     </section>
   );
 }

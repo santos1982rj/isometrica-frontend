@@ -1,1 +1,21 @@
 @import "tailwindcss";
+@import "./styles/tokens.css";
+@import "./styles/animations.css";
+@import "./styles/liquid-glass.css";
+@import "./styles/global.css";
+
+.legal-copy h2 {
+  color: var(--text);
+  font-size: 1.25rem;
+  font-weight: 600;
+  margin-bottom: 0.65rem;
+}
+
+.legal-copy p {
+  line-height: 1.8;
+}
+
+.legal-copy a {
+  color: var(--iso-primary);
+  font-weight: 600;
+}
