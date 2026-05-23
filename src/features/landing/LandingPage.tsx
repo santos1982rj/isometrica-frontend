@@ -1,6 +1,8 @@
 import { ArrowRight, BookOpen, ClipboardCheck, LineChart } from 'lucide-react';
 import { Link } from 'react-router-dom';
 
+import { Seo } from '../../components/seo/Seo';
+
 const pillars = [
   {
     title: 'Trilha',
@@ -22,6 +24,11 @@ const pillars = [
 export function LandingPage() {
   return (
     <main className="min-h-screen bg-[var(--canvas)] text-[var(--text)]">
+      <Seo
+        title="Estudo para engenharia"
+        description="A ISOMÉTRICA organiza aulas, prática e progresso para quem precisa estudar engenharia com mais direção."
+      />
+
       <header className="absolute inset-x-0 top-0 z-30">
         <div className="mx-auto flex min-h-20 w-full max-w-[1480px] items-center justify-between px-4 sm:px-6 lg:px-8">
           <Link to="/" className="flex items-center gap-3 text-white">

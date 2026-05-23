@@ -4,6 +4,7 @@ import { Link } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 
 import { PageLoader } from '../../components/loaders/PageLoader';
+import { Seo } from '../../components/seo/Seo';
 import { listCourses } from './courses.service';
 import { useAuthStore } from '../../core/store/authStore';
 
@@ -57,7 +58,15 @@ export function CoursesPage() {
     : filters.filter((item) => item.id !== 'ENROLLED');
 
   if (isLoading) {
-    return <PageLoader />;
+    return (
+      <>
+        <Seo
+          title="Cursos de engenharia"
+          description="Catálogo de cursos e disciplinas da ISOMÉTRICA para estudar engenharia com trilhas organizadas."
+        />
+        <PageLoader />
+      </>
+    );
   }
 
   if (isError) {
@@ -70,6 +79,11 @@ export function CoursesPage() {
 
   return (
     <section className="w-full space-y-4">
+      <Seo
+        title="Cursos de engenharia"
+        description="Catálogo de cursos e disciplinas da ISOMÉTRICA para estudar engenharia com trilhas organizadas."
+      />
+
       <header className="overflow-hidden rounded-xl border border-[var(--border)] bg-[var(--surface)] shadow-sm shadow-black/5">
         <div className="grid lg:grid-cols-[1fr_auto]">
           <div className="p-4 sm:p-6">

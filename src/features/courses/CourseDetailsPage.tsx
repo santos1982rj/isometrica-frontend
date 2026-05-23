@@ -22,6 +22,7 @@ import { IsoBadge } from '../../components/ui/IsoBadge';
 import { IsoButton } from '../../components/ui/IsoButton';
 import { LiquidCard } from '../../components/ui/LiquidCard';
 import { CoursePageSkeleton } from '../../components/skeletons/CoursePageSkeleton';
+import { Seo } from '../../components/seo/Seo';
 import { useAuthStore } from '../../core/store/authStore';
 import { getMyProgress } from '../progress/progress.service';
 import {
@@ -205,7 +206,15 @@ export function CourseDetailsPage() {
   }, [showTransparentCheckout]);
 
   if (isLoading) {
-    return <CoursePageSkeleton />;
+    return (
+      <>
+        <Seo
+          title="Curso"
+          description="Conheça uma trilha de estudo da ISOMÉTRICA para engenharia."
+        />
+        <CoursePageSkeleton />
+      </>
+    );
   }
 
   if (isError || !course) {
@@ -250,6 +259,13 @@ export function CourseDetailsPage() {
     completedPayment?.persisted.status === 'RECUSADO';
   return (
     <section className="w-full space-y-4">
+      <Seo
+        title={course.titulo}
+        description={course.resumo ?? course.descricao}
+        image={course.imagem}
+        type="article"
+      />
+
       <LiquidCard className="relative overflow-hidden rounded-xl p-4 sm:p-5 lg:p-6">
         {course.imagem && (
           <>

@@ -1,6 +1,8 @@
 import { Suspense, lazy } from 'react';
 import { BrowserRouter, Route, Routes } from 'react-router-dom';
 
+import type { ReactNode } from 'react';
+
 import { AppShell } from '../features/layout/components/AppShell';
 
 import { LoginPage } from '../features/auth/LoginPage';
@@ -26,6 +28,7 @@ import { TermsPage } from '../features/legal/TermsPage';
 import { TeacherDashboardPage } from '../features/teacher/TeacherDashboardPage';
 import { AdminDashboardPage } from '../features/admin/AdminDashboardPage';
 import { PageLoader } from '../components/loaders/PageLoader';
+import { Seo } from '../components/seo/Seo';
 
 import { PrivateRoute } from './PrivateRoute';
 import { RoleRoute } from './RoleRoute';
@@ -42,13 +45,13 @@ export function AppRoutes() {
       <Routes>
         <Route path="/" element={<LandingPage />} />
         <Route path="/landing" element={<LandingPage />} />
-        <Route path="/login" element={<LoginPage />} />
-        <Route path="/register" element={<RegisterPage />} />
-        <Route path="/forgot-password" element={<ForgotPasswordPage />} />
-        <Route path="/reset-password" element={<ResetPasswordPage />} />
-        <Route path="/verify-email" element={<VerifyEmailPage />} />
-        <Route path="/terms" element={<TermsPage />} />
-        <Route path="/privacy" element={<PrivacyPage />} />
+        <Route path="/login" element={<PublicSeo title="Entrar" noIndex><LoginPage /></PublicSeo>} />
+        <Route path="/register" element={<PublicSeo title="Criar conta"><RegisterPage /></PublicSeo>} />
+        <Route path="/forgot-password" element={<PublicSeo title="Recuperar senha" noIndex><ForgotPasswordPage /></PublicSeo>} />
+        <Route path="/reset-password" element={<PublicSeo title="Redefinir senha" noIndex><ResetPasswordPage /></PublicSeo>} />
+        <Route path="/verify-email" element={<PublicSeo title="Verificar e-mail" noIndex><VerifyEmailPage /></PublicSeo>} />
+        <Route path="/terms" element={<PublicSeo title="Termos de uso"><TermsPage /></PublicSeo>} />
+        <Route path="/privacy" element={<PublicSeo title="Política de privacidade"><PrivacyPage /></PublicSeo>} />
         <Route
           path="/courses"
           element={
@@ -68,14 +71,23 @@ export function AppRoutes() {
         <Route
           path="/preview/lessons/:id"
           element={
-            <PublicCoursesFrame>
-              <LessonPage />
-            </PublicCoursesFrame>
+            <PublicSeo title="Aula aberta" noIndex>
+              <PublicCoursesFrame>
+                <LessonPage />
+              </PublicCoursesFrame>
+            </PublicSeo>
           }
         />
 
         <Route element={<PrivateRoute />}>
-          <Route element={<AppShell />}>
+          <Route
+            element={
+              <>
+                <Seo title="Área do aluno" noIndex />
+                <AppShell />
+              </>
+            }
+          >
             <Route path="/dashboard" element={<DashboardPage />} />
             <Route
               path="/calculators"
@@ -109,5 +121,22 @@ export function AppRoutes() {
         </Route>
       </Routes>
     </BrowserRouter>
+  );
+}
+
+function PublicSeo({
+  children,
+  title,
+  noIndex = false,
+}: {
+  children: ReactNode;
+  title: string;
+  noIndex?: boolean;
+}) {
+  return (
+    <>
+      <Seo title={title} noIndex={noIndex} />
+      {children}
+    </>
   );
 }
