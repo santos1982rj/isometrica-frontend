@@ -44,19 +44,19 @@ export const globalSearchItems = [
   {
     id: 'rm',
     title: 'Resistencia dos Materiais',
-    type: 'Disciplina',
+    type: 'Curso',
     path: '/courses/resistencia-dos-materiais',
   },
   {
     id: 'ft',
     title: 'Fenomenos de Transporte',
-    type: 'Disciplina',
+    type: 'Curso',
     path: '/courses/fenomenos-de-transporte',
   },
   {
     id: 'calc',
     title: 'Calculo Diferencial',
-    type: 'Disciplina',
+    type: 'Curso',
     path: '/courses/calculo-diferencial',
   },
 ];

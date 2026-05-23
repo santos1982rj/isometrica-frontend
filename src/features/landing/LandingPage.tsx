@@ -65,7 +65,7 @@ export function LandingPage() {
                   <ArrowRight className="h-4 w-4" />
                 </Link>
                 <Link className="iso-button-soft border-white/20 bg-black/30 px-6 text-white hover:bg-black/45" to="/courses">
-                  Ver disciplinas
+                  Ver cursos
                 </Link>
               </div>
             </div>
@@ -134,7 +134,7 @@ export function LandingPage() {
             Estude engenharia com um caminho mais claro.
           </h2>
           <p className="mx-auto mt-5 max-w-2xl text-base leading-7 text-[var(--text-soft)]">
-            Comece por uma disciplina e transforme tempo de estudo em progresso que você consegue retomar.
+            Comece por um curso e transforme tempo de estudo em progresso que você consegue retomar.
           </p>
           <Link className="iso-button-primary mx-auto mt-8 gap-2 px-6" to="/register">
             Começar agora

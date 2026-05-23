@@ -2142,7 +2142,7 @@ function CourseWizardForm({
             {editingCourseId ? 'Editar curso' : 'Novo curso'}
           </h2>
           <p className="mt-2 text-sm leading-6 text-[var(--text-soft)]">
-            Crie a disciplina por etapas, do posicionamento comercial até o
+            Crie o curso por etapas, do posicionamento comercial até o
             checklist de publicação.
           </p>
           <span

@@ -12,7 +12,6 @@ import {
   FileText,
   Paperclip,
   Save,
-  Sparkles,
 } from 'lucide-react';
 import { useEffect, useMemo, useState, type ReactNode } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
@@ -338,6 +337,13 @@ export function LessonPage() {
       : undefined;
 
   const notesSavedAt = notesSavedAtByLesson[lesson.id];
+  const lessonPosition = currentLessonIndex >= 0 ? currentLessonIndex + 1 : 1;
+  const completedModuleLessons = moduleLessons.filter((moduleLesson) =>
+    progress?.some((item) => item.aulaId === moduleLesson.id && item.concluida),
+  ).length;
+  const completionPercent = moduleLessons.length
+    ? Math.round((completedModuleLessons / moduleLessons.length) * 100)
+    : 0;
   const lessonUrl = (targetLesson: { id: string; slug: string }) =>
     course ? `/courses/${course.slug}/lessons/${targetLesson.slug}` : `/lessons/${targetLesson.id}`;
 
@@ -363,64 +369,74 @@ export function LessonPage() {
 
   return (
     <section className="w-full">
-      <button
-        type="button"
-        onClick={() => navigateWithUnsavedGuard(`/courses/${lesson.modulo.curso.slug}`)}
-        className="iso-button-soft mb-5 gap-2 px-4"
-      >
-        <ArrowLeft className="h-4 w-4" />
-        Voltar para a disciplina
-      </button>
+      <div className="mb-4 flex flex-col gap-3 rounded-xl border border-[var(--border)] bg-[var(--surface)] px-4 py-3 shadow-sm shadow-black/5 sm:flex-row sm:items-center sm:justify-between">
+        <button
+          type="button"
+          onClick={() => navigateWithUnsavedGuard(`/courses/${lesson.modulo.curso.slug}`)}
+          className="inline-flex min-h-10 items-center gap-2 text-sm font-semibold text-[var(--text-soft)] transition hover:text-[var(--text)]"
+        >
+          <ArrowLeft className="h-4 w-4" />
+          Voltar para o curso
+        </button>
 
-      <LiquidCard className="relative overflow-hidden rounded-xl p-4 sm:p-5">
-        <div className="relative z-10 max-w-5xl">
-          <div className="mb-5 inline-flex items-center gap-2">
-            <IsoBadge>
-              <Sparkles className="mr-1 h-3.5 w-3.5" />
-              Aula técnica | ISOMETRICA
-            </IsoBadge>
-          </div>
-
-          <p className="text-xs font-bold uppercase tracking-[0.24em] text-[var(--text-muted)]">
-            {lesson.modulo.curso.titulo}
-          </p>
-
-          <h1 className="mt-4 text-2xl font-semibold text-[var(--text)] sm:text-3xl">
-            {lesson.titulo}
-          </h1>
-
-          {lesson.descricao && (
-            <p className="mt-3 max-w-4xl text-sm leading-6 text-[var(--text-soft)]">
-              {lesson.descricao}
-            </p>
-          )}
-
-          <div className="mt-4 flex flex-wrap gap-2">
-            <IsoBadge>Engenharia</IsoBadge>
-            <IsoBadge variant="orange">Exercícios integrados</IsoBadge>
-            <IsoBadge variant="success">Materiais técnicos</IsoBadge>
-            {isCompleted && (
-              <IsoBadge variant="success">
+        <div className="flex flex-wrap items-center gap-2">
+          <IsoBadge>Aula {lessonPosition} de {moduleLessons.length || lessonPosition}</IsoBadge>
+          <IsoBadge variant={isCompleted ? 'success' : 'orange'}>
+            {isCompleted ? (
+              <>
                 <CheckCircle2 className="mr-1 h-3.5 w-3.5" />
-                Aula concluída
-              </IsoBadge>
+                Concluída
+              </>
+            ) : (
+              'Em andamento'
             )}
-          </div>
+          </IsoBadge>
+          {!isPublicPreview && <IsoBadge variant="success">{completionPercent}% da sequência</IsoBadge>}
         </div>
-      </LiquidCard>
+      </div>
 
-      <div className="mt-4 grid gap-4 xl:grid-cols-[minmax(0,1fr)_21rem]">
-        <div>
+      <div className="grid gap-4 xl:grid-cols-[minmax(0,1fr)_21rem]">
+        <div className="min-w-0">
+          <LiquidCard className="mb-4 rounded-xl p-4 sm:p-5">
+            <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
+              <div className="min-w-0">
+                <p className="text-xs font-bold uppercase tracking-[0.2em] text-[var(--text-muted)]">
+                  {lesson.modulo.curso.titulo}
+                </p>
+                <h1 className="mt-2 text-2xl font-semibold leading-tight text-[var(--text)] sm:text-3xl">
+                  {lesson.titulo}
+                </h1>
+                {lesson.descricao && (
+                  <p className="mt-2 max-w-4xl text-sm leading-6 text-[var(--text-soft)]">
+                    {lesson.descricao}
+                  </p>
+                )}
+              </div>
+
+              {!isPublicPreview && !isCompleted && (
+                <button
+                  type="button"
+                  disabled={completeLessonMutation.isPending}
+                  onClick={() => completeLessonMutation.mutate()}
+                  className="iso-button-primary shrink-0 gap-2 px-5 disabled:cursor-not-allowed disabled:opacity-60"
+                >
+                  <CheckCircle2 className="h-4 w-4" />
+                  {completeLessonMutation.isPending ? 'Salvando...' : 'Concluir aula'}
+                </button>
+              )}
+            </div>
+          </LiquidCard>
           <LessonPlayer
             lessonId={lesson.id}
             videoUrl={lesson.videoUrl}
             title={lesson.titulo}
             initialTime={currentProgress?.tempoAssistido ?? 0}
             trackProgress={!isPublicPreview}
+            showHeader={false}
           />
 
-          <LiquidCard className="mt-4 rounded-xl p-4 sm:p-5">
-            <div className="mb-5 flex flex-wrap gap-2 border-b border-[var(--border)] pb-4">
+          <LiquidCard className="mt-4 rounded-xl p-0">
+            <div className="flex gap-1 overflow-x-auto border-b border-[var(--border)] p-2">
               <TabButton
                 active={activeTab === 'content'}
                 icon={<BookText className="h-4 w-4" />}
@@ -431,28 +447,29 @@ export function LessonPage() {
                 <>
                   <TabButton
                     active={activeTab === 'attachments'}
-                icon={<Paperclip className="h-4 w-4" />}
-                label={`Anexos (${attachments.length})`}
-                onClick={() => setActiveTab('attachments')}
-              />
-              <TabButton
-                active={activeTab === 'exercises'}
-                icon={<ClipboardCheck className="h-4 w-4" />}
-                label={`Exercícios (${exercises.length})`}
-                onClick={() => setActiveTab('exercises')}
-              />
+                    icon={<Paperclip className="h-4 w-4" />}
+                    label={`Anexos (${attachments.length})`}
+                    onClick={() => setActiveTab('attachments')}
+                  />
+                  <TabButton
+                    active={activeTab === 'exercises'}
+                    icon={<ClipboardCheck className="h-4 w-4" />}
+                    label={`Exercícios (${exercises.length})`}
+                    onClick={() => setActiveTab('exercises')}
+                  />
                   <TabButton
                     active={activeTab === 'notes'}
-                icon={<FileText className="h-4 w-4" />}
-                label="Notas"
-                onClick={() => setActiveTab('notes')}
+                    icon={<FileText className="h-4 w-4" />}
+                    label="Notas"
+                    onClick={() => setActiveTab('notes')}
                   />
                 </>
               )}
             </div>
 
-            {activeTab === 'content' && (
-              <>
+            <div className="p-4 sm:p-5">
+              {activeTab === 'content' && (
+                <>
                 <SectionHeader
                   eyebrow="Conteúdo da aula"
                   title="Desenvolvimento técnico"
@@ -480,19 +497,19 @@ export function LessonPage() {
                     </button>
                   </div>
                 )}
-              </>
-            )}
+                </>
+              )}
 
-            {!isPublicPreview && activeTab === 'attachments' && (
-              <LessonAttachmentsSection attachments={attachments} />
-            )}
+              {!isPublicPreview && activeTab === 'attachments' && (
+                <LessonAttachmentsSection attachments={attachments} />
+              )}
 
-            {!isPublicPreview && activeTab === 'exercises' && (
-              <LessonExercisesSection lessonId={lesson.id} exercises={exercises} />
-            )}
+              {!isPublicPreview && activeTab === 'exercises' && (
+                <LessonExercisesSection lessonId={lesson.id} exercises={exercises} />
+              )}
 
-            {!isPublicPreview && activeTab === 'notes' && (
-              <div>
+              {!isPublicPreview && activeTab === 'notes' && (
+                <div>
                 {notesToast && (
                   <div
                     className={[
@@ -564,12 +581,13 @@ export function LessonPage() {
                     {updateLessonNotesMutation.isPending ? 'Salvando...' : 'Salvar agora'}
                   </button>
                 </div>
-              </div>
-            )}
+                </div>
+              )}
+            </div>
           </LiquidCard>
         </div>
 
-        <aside className="space-y-4">
+        <aside className="space-y-4 xl:sticky xl:top-24 xl:self-start">
           {isPublicPreview ? (
             <LiquidCard className="rounded-xl p-5">
               <IsoBadge variant="success">Prévia aberta</IsoBadge>
@@ -577,7 +595,7 @@ export function LessonPage() {
                 Continue pelo curso
               </h2>
               <p className="mt-2 text-sm leading-6 text-[var(--text-soft)]">
-                Veja a grade completa, os valores e as próximas aulas na página da disciplina.
+                Veja a grade completa, os valores e as próximas aulas na página do curso.
               </p>
               <button
                 type="button"

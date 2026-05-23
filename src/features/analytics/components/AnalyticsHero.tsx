@@ -36,7 +36,7 @@ export function AnalyticsHero({
           </h1>
 
           <p className="mt-6 max-w-3xl text-base leading-8 text-[var(--text-soft)] lg:text-lg">
-            Acompanhe sua evolução em disciplinas de engenharia, valide
+            Acompanhe sua evolução em cursos de engenharia, valide
             raciocínios e avance com consistência acadêmica.
           </p>
 
@@ -47,7 +47,7 @@ export function AnalyticsHero({
             </IsoButton>
 
             <IsoButton variant="soft">
-              Ver disciplinas
+              Ver cursos
             </IsoButton>
           </div>
         </div>

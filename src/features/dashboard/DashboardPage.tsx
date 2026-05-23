@@ -110,7 +110,7 @@ export function DashboardPage() {
                 <p className="mt-3 max-w-2xl text-sm leading-6 text-[var(--text-muted)]">
                   {activeProgress
                     ? `${activeProgress.aula.titulo} em ${activeProgress.aula.modulo.curso.titulo}.`
-                    : 'Escolha um curso e monte um ritmo de estudo que avance aula por aula.'}
+                    : 'Escolha uma trilha e monte um ritmo de estudo que avance aula por aula.'}
                 </p>
               </div>
               <Link className="iso-button-primary min-h-11 justify-center gap-2 rounded-lg px-4 text-sm" to={continueHref}>
@@ -148,12 +148,12 @@ export function DashboardPage() {
                 Próxima ação
               </div>
               <h2 className="mt-3 text-xl font-semibold text-[var(--text)]">
-                {activeProgress?.aula.titulo ?? 'Escolha o curso de partida'}
+                {activeProgress?.aula.titulo ?? 'Escolha a trilha de partida'}
               </h2>
               <p className="mt-2 text-sm leading-6 text-[var(--text-muted)]">
                 {activeProgress
                   ? `${activeProgress.aula.modulo.titulo} | ${activeProgress.aula.modulo.curso.titulo}`
-                  : 'A fila de cursos recomendados está pronta para iniciar seu histórico.'}
+                  : 'A fila de trilhas recomendadas está pronta para iniciar seu histórico.'}
               </p>
             </div>
             <div className="min-w-32 rounded-lg border border-[var(--border)] bg-[var(--surface-soft)] p-3 text-right">
@@ -173,7 +173,7 @@ export function DashboardPage() {
               </div>
               <div className="mt-4 grid gap-2 sm:grid-cols-3">
                 <div className="rounded-md border border-[var(--border)] bg-[var(--surface-soft)] px-3 py-2">
-                  <span className="block text-xs text-[var(--text-muted)]">Cursos ativos</span>
+                  <span className="block text-xs text-[var(--text-muted)]">Trilhas ativas</span>
                   <strong className="numeric mt-1 block text-sm font-semibold text-[var(--text)]">
                     {analytics?.cursosEmAndamento ?? 0}
                   </strong>
@@ -234,7 +234,7 @@ export function DashboardPage() {
         <StatCard label="XP total" value={analytics?.xpTotal ?? 0} helper={`Nivel ${analytics?.nivel ?? 1} na plataforma.`} icon={<Trophy className="h-4 w-4" />} />
         <StatCard label="Sequencia" value={`${analytics?.streak ?? 0} dias`} helper="Consistencia de estudo recente." icon={<Flame className="h-4 w-4" />} />
         <StatCard label="Tempo estudado" value={formatMinutes(analytics?.tempoTotalEstudo ?? 0)} helper="Tempo acumulado nas aulas." icon={<Clock3 className="h-4 w-4" />} />
-        <StatCard label="Cursos ativos" value={analytics?.cursosEmAndamento ?? 0} helper={`${analytics?.cursosConcluidos ?? 0} cursos finalizados.`} icon={<GraduationCap className="h-4 w-4" />} />
+        <StatCard label="Trilhas ativas" value={analytics?.cursosEmAndamento ?? 0} helper={`${analytics?.cursosConcluidos ?? 0} trilhas finalizadas.`} icon={<GraduationCap className="h-4 w-4" />} />
       </section>
 
       <section className="grid gap-4 lg:grid-cols-[0.8fr_1.2fr]">
@@ -268,10 +268,10 @@ export function DashboardPage() {
           <div className="flex items-center justify-between gap-3">
             <div>
               <p className="text-sm font-medium text-[var(--text-muted)]">Fila de estudo</p>
-              <h2 className="mt-1 text-lg font-semibold text-[var(--text)]">Meus cursos</h2>
+              <h2 className="mt-1 text-lg font-semibold text-[var(--text)]">Minhas trilhas</h2>
             </div>
             <Link className="hidden text-sm font-semibold text-[var(--iso-primary)] sm:inline-flex" to="/courses">
-              Ver catalogo
+              Ver catálogo
             </Link>
           </div>
           <div className="mt-5 divide-y divide-[var(--border)] border-y border-[var(--border)]">

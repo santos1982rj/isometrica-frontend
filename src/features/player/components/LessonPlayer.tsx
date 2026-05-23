@@ -9,6 +9,7 @@ type LessonPlayerProps = {
   title: string;
   initialTime?: number;
   trackProgress?: boolean;
+  showHeader?: boolean;
 };
 
 type VideoSource =
@@ -105,6 +106,7 @@ export function LessonPlayer({
   title,
   initialTime = 0,
   trackProgress = true,
+  showHeader = true,
 }: LessonPlayerProps) {
   const videoRef = useRef<HTMLVideoElement | null>(null);
 
@@ -148,15 +150,17 @@ export function LessonPlayer({
 
   return (
     <section className="overflow-hidden rounded-xl border border-[var(--border)] bg-[var(--surface)] shadow-sm shadow-black/5">
-      <div className="border-b border-[var(--border)] bg-[var(--surface-soft)] px-4 py-3 sm:px-5">
-        <p className="text-xs font-semibold uppercase text-[var(--text-muted)]">
-          Player da aula
-        </p>
+      {showHeader && (
+        <div className="border-b border-[var(--border)] bg-[var(--surface-soft)] px-4 py-3 sm:px-5">
+          <p className="text-xs font-semibold uppercase text-[var(--text-muted)]">
+            Player da aula
+          </p>
 
-        <h2 className="mt-1 text-base font-semibold text-[var(--text)] sm:text-lg">
-          {title}
-        </h2>
-      </div>
+          <h2 className="mt-1 text-base font-semibold text-[var(--text)] sm:text-lg">
+            {title}
+          </h2>
+        </div>
+      )}
 
       {source.type === 'youtube' && (
         <YouTubePlayer

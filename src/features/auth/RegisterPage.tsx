@@ -86,7 +86,7 @@ export function RegisterPage() {
         </h1>
 
         <p className="mt-3 leading-7 text-slate-300">
-          Entre para acompanhar disciplinas, aulas e progresso.
+          Entre para acompanhar cursos, aulas e progresso.
         </p>
 
         <form className="mt-7 space-y-4" onSubmit={handleSubmit}>

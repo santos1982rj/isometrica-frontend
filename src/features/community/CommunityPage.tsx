@@ -7,7 +7,7 @@ export function CommunityPage() {
         <p className="text-xs font-semibold uppercase text-[var(--text-muted)]">Comunidade</p>
         <h1 className="mt-3 text-2xl font-semibold text-[var(--text)] sm:text-3xl">Estudantes ajudando estudantes</h1>
         <p className="mt-2 max-w-3xl text-sm leading-6 text-[var(--text-muted)]">
-          A área social será focada em estudo técnico, dúvidas bem formuladas e troca por disciplina.
+          A área social será focada em estudo técnico, dúvidas bem formuladas e troca por curso.
         </p>
       </header>
 
@@ -18,7 +18,7 @@ export function CommunityPage() {
           </span>
           <h2 className="mt-4 text-lg font-semibold text-[var(--text)]">Grupos de estudo</h2>
           <p className="mt-2 text-sm leading-6 text-[var(--text-muted)]">
-            Espaco planejado para grupos por disciplina, turma e dificuldade.
+            Espaço planejado para grupos por curso, turma e dificuldade.
           </p>
         </article>
 

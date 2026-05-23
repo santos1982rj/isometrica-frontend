@@ -62,7 +62,7 @@ export function CoursesPage() {
       <>
         <Seo
           title="Cursos de engenharia"
-          description="Catálogo de cursos e disciplinas da ISOMÉTRICA para estudar engenharia com trilhas organizadas."
+          description="Catálogo de cursos da ISOMÉTRICA para estudar engenharia com trilhas organizadas."
         />
         <PageLoader />
       </>
@@ -72,7 +72,7 @@ export function CoursesPage() {
   if (isError) {
     return (
       <section className="rounded-lg border border-red-500/20 bg-red-500/10 p-5 text-sm font-semibold text-red-300">
-        Não foi possível carregar as disciplinas.
+        Não foi possível carregar os cursos.
       </section>
     );
   }
@@ -81,7 +81,7 @@ export function CoursesPage() {
     <section className="w-full space-y-4">
       <Seo
         title="Cursos de engenharia"
-        description="Catálogo de cursos e disciplinas da ISOMÉTRICA para estudar engenharia com trilhas organizadas."
+        description="Catálogo de cursos da ISOMÉTRICA para estudar engenharia com trilhas organizadas."
       />
 
       <header className="overflow-hidden rounded-xl border border-[var(--border)] bg-[var(--surface)] shadow-sm shadow-black/5">
@@ -91,7 +91,7 @@ export function CoursesPage() {
               <span className="rounded-md border border-[var(--border)] bg-[var(--surface-soft)] px-2 py-1 text-[var(--iso-primary)]">
                 Catálogo
               </span>
-              <span>Disciplinas</span>
+              <span>Cursos</span>
             </div>
             <h1 className="mt-4 max-w-3xl text-2xl font-semibold text-[var(--text)] sm:text-3xl">
               Cursos organizados para estudar com continuidade.
@@ -125,7 +125,7 @@ export function CoursesPage() {
         <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
           <div className="flex items-center gap-2 text-sm font-medium text-[var(--text-muted)]">
             <Filter className="h-4 w-4 text-[var(--iso-primary)]" />
-            {filteredCourses.length} disciplinas visíveis
+            {filteredCourses.length} cursos visíveis
           </div>
           <div className="flex flex-wrap gap-2">
             {visibleFilters.map((item) => (
@@ -230,7 +230,7 @@ export function CoursesPage() {
 
         {filteredCourses.length === 0 && (
           <div className="rounded-xl border border-dashed border-[var(--border)] bg-[var(--surface)] p-6 text-sm text-[var(--text-muted)] md:col-span-2 2xl:col-span-3">
-            Nenhuma disciplina encontrada neste filtro.
+            Nenhum curso encontrado neste filtro.
           </div>
         )}
       </section>

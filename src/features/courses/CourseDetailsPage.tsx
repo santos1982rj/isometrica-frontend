@@ -220,7 +220,7 @@ export function CourseDetailsPage() {
   if (isError || !course) {
     return (
       <LiquidCard>
-        <p className="font-semibold text-red-400">Não foi possível carregar a disciplina.</p>
+        <p className="font-semibold text-red-400">Não foi possível carregar o curso.</p>
       </LiquidCard>
     );
   }
@@ -241,7 +241,7 @@ export function CourseDetailsPage() {
     0,
   );
   const benefitLines = getSalesLines(course.beneficios, [
-    'Estude os fundamentos que sustentam a disciplina antes de avançar para aplicações.',
+    'Estude os fundamentos que sustentam o curso antes de avançar para aplicações.',
     'Siga uma trilha em módulos com aulas organizadas para manter continuidade.',
     'Aplique o conteúdo com exercícios e materiais técnicos ao longo do curso.',
   ]);
@@ -440,7 +440,7 @@ export function CourseDetailsPage() {
                       : enrollMutation.isPending
                       ? 'Matriculando...'
                       : 'Matricular grátis'
-                    : 'Continuar disciplina'}
+                    : 'Continuar curso'}
               </IsoButton>
 
               {course.isPremium && !course.isEnrolled && (
@@ -470,7 +470,7 @@ export function CourseDetailsPage() {
 
               {course.isEnrolled && (
                 <p className="mt-3 text-center text-sm text-[var(--success-500)]">
-                  Você está matriculado nesta disciplina.
+                  Você está matriculado neste curso.
                 </p>
               )}
 

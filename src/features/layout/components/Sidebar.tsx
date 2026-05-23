@@ -16,7 +16,7 @@ import { useAuthStore } from '../../../core/store/authStore';
 
 const navigation = [
   { label: 'Dashboard', href: '/dashboard', icon: LayoutDashboard },
-  { label: 'Disciplinas', href: '/courses', icon: GraduationCap },
+  { label: 'Cursos', href: '/courses', icon: GraduationCap },
   { label: 'Calculadoras', href: '/calculators', icon: Calculator },
   { label: 'Revisao', href: '/revision', icon: Repeat2 },
   { label: 'Analytics', href: '/analytics', icon: LineChart },

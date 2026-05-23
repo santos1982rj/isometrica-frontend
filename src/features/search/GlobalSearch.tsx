@@ -25,7 +25,7 @@ export function GlobalSearch() {
         <input
           value={query}
           onChange={(event) => setQuery(event.target.value)}
-          placeholder="Buscar disciplinas, aulas ou ferramentas"
+          placeholder="Buscar cursos, aulas ou ferramentas"
           className="min-w-0 flex-1 bg-transparent text-sm text-[var(--text)] outline-none placeholder:text-[var(--text-muted)]"
         />
       </label>

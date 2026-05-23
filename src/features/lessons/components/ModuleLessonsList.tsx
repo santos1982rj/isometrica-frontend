@@ -43,8 +43,8 @@ export function ModuleLessonsList({
     <section className="rounded-xl border border-[var(--border)] bg-[var(--surface)] p-4 shadow-sm shadow-black/5">
       <div className="flex items-end justify-between gap-3 border-b border-[var(--border)] pb-4">
         <div>
-          <p className="text-xs font-semibold uppercase text-[var(--text-muted)]">Modulo atual</p>
-          <h2 className="mt-2 text-lg font-semibold text-[var(--text)]">Aulas da sequencia</h2>
+          <p className="text-xs font-semibold uppercase text-[var(--text-muted)]">Módulo atual</p>
+          <h2 className="mt-2 text-lg font-semibold text-[var(--text)]">Sequência</h2>
         </div>
         <span className="numeric text-sm font-semibold text-[var(--text-muted)]">{completedCount}/{lessons.length}</span>
       </div>

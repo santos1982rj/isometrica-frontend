@@ -53,22 +53,6 @@ export function AppRoutes() {
         <Route path="/terms" element={<PublicSeo title="Termos de uso"><TermsPage /></PublicSeo>} />
         <Route path="/privacy" element={<PublicSeo title="Política de privacidade"><PrivacyPage /></PublicSeo>} />
         <Route
-          path="/courses"
-          element={
-            <PublicCoursesFrame>
-              <CoursesPage />
-            </PublicCoursesFrame>
-          }
-        />
-        <Route
-          path="/courses/:slug"
-          element={
-            <PublicCoursesFrame>
-              <CourseDetailsPage />
-            </PublicCoursesFrame>
-          }
-        />
-        <Route
           path="/preview/lessons/:id"
           element={
             <PublicSeo title="Aula aberta" noIndex>
@@ -89,6 +73,7 @@ export function AppRoutes() {
             }
           >
             <Route path="/dashboard" element={<DashboardPage />} />
+            <Route path="/courses" element={<CoursesPage />} />
             <Route
               path="/calculators"
               element={
@@ -100,6 +85,7 @@ export function AppRoutes() {
             <Route path="/study-mode" element={<StudyModePage />} />
             <Route path="/lessons/:id" element={<LessonPage />} />
             <Route path="/courses/:courseSlug/lessons/:lessonSlug" element={<LessonPage />} />
+            <Route path="/courses/:slug" element={<CourseDetailsPage />} />
             <Route path="/analytics" element={<AnalyticsPage />} />
             <Route path="/profile" element={<ProfilePage />} />
             <Route path="/ranking" element={<RankingPage />} />
