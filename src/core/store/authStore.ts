@@ -8,6 +8,18 @@ type User = {
   nome: string;
   email: string;
   avatar?: string | null;
+  headline?: string | null;
+  location?: string | null;
+  bio?: string | null;
+  experience?: string | null;
+  education?: string | null;
+  skills?: string | null;
+  interests?: string | null;
+  linkedinUrl?: string | null;
+  githubUrl?: string | null;
+  portfolioUrl?: string | null;
+  instagramUrl?: string | null;
+  whatsapp?: string | null;
   role: string;
   xpTotal: number;
   nivel: number;

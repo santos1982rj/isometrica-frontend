@@ -3,6 +3,7 @@ import { Link, useNavigate } from 'react-router-dom';
 
 import { ThemeToggle } from '../../../components/ui/ThemeToggle';
 import { useAuthStore } from '../../../core/store/authStore';
+import { resolveAssetUrl } from '../../../core/utils/assetUrl';
 import { GlobalSearch } from '../../search/GlobalSearch';
 
 type TopbarProps = {
@@ -33,6 +34,7 @@ export function Topbar({
   const user = useAuthStore((state) => state.user);
   const signOut = useAuthStore((state) => state.signOut);
   const navigate = useNavigate();
+  const avatarUrl = resolveAssetUrl(user?.avatar);
 
   const handleSignOut = () => {
     signOut();
@@ -86,11 +88,11 @@ export function Topbar({
             to="/profile"
           >
             <div className="grid h-9 w-9 shrink-0 place-items-center overflow-hidden rounded-full border border-[var(--accent-border)] bg-[var(--accent-bg)] text-xs font-semibold text-[var(--accent)]">
-              {user?.avatar ? (
+              {avatarUrl ? (
                 <img
                   className="h-full w-full object-cover"
-                  src={user.avatar}
-                  alt={user.nome}
+                  src={avatarUrl}
+                  alt={user?.nome ?? 'Perfil'}
                 />
               ) : (
                 getInitials(user?.nome)

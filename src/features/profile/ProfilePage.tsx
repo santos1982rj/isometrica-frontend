@@ -1,10 +1,20 @@
-import { useState } from 'react';
+import { useMemo, useState, type ReactNode } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { Camera, LockKeyhole, Save, SlidersHorizontal } from 'lucide-react';
+import {
+  Camera,
+  ExternalLink,
+  LockKeyhole,
+  MapPin,
+  Save,
+  SlidersHorizontal,
+  Sparkles,
+  Upload,
+} from 'lucide-react';
 
 import { IsoButton } from '../../components/ui/IsoButton';
 import { LiquidCard } from '../../components/ui/LiquidCard';
 import { useAuthStore } from '../../core/store/authStore';
+import { resolveAssetUrl } from '../../core/utils/assetUrl';
 import { StudyStreakCard } from '../analytics/components/StudyStreakCard';
 import { XpProgressCard } from '../analytics/components/XpProgressCard';
 import { useAnalytics } from '../analytics/useAnalytics';
@@ -15,6 +25,7 @@ import {
   requestEmailVerification,
   updatePreferences,
   updateProfile,
+  uploadAvatar,
 } from './profile.service';
 
 function getInitials(name?: string) {
@@ -31,6 +42,13 @@ function getInitials(name?: string) {
     .toUpperCase();
 }
 
+function splitList(value?: string | null) {
+  return value
+    ?.split(/\r?\n|,/)
+    .map((item) => item.trim())
+    .filter(Boolean) ?? [];
+}
+
 export function ProfilePage() {
   const queryClient = useQueryClient();
   const { data: analytics } = useAnalytics();
@@ -39,6 +57,19 @@ export function ProfilePage() {
 
   const [nome, setNome] = useState(user?.nome ?? '');
   const [avatar, setAvatar] = useState(user?.avatar ?? '');
+  const [avatarPreview, setAvatarPreview] = useState('');
+  const [headline, setHeadline] = useState(user?.headline ?? '');
+  const [location, setLocation] = useState(user?.location ?? '');
+  const [bio, setBio] = useState(user?.bio ?? '');
+  const [experience, setExperience] = useState(user?.experience ?? '');
+  const [education, setEducation] = useState(user?.education ?? '');
+  const [skills, setSkills] = useState(user?.skills ?? '');
+  const [interests, setInterests] = useState(user?.interests ?? '');
+  const [linkedinUrl, setLinkedinUrl] = useState(user?.linkedinUrl ?? '');
+  const [githubUrl, setGithubUrl] = useState(user?.githubUrl ?? '');
+  const [portfolioUrl, setPortfolioUrl] = useState(user?.portfolioUrl ?? '');
+  const [instagramUrl, setInstagramUrl] = useState(user?.instagramUrl ?? '');
+  const [whatsapp, setWhatsapp] = useState(user?.whatsapp ?? '');
   const [currentPassword, setCurrentPassword] = useState('');
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
@@ -54,9 +85,21 @@ export function ProfilePage() {
     queryFn: listMyPurchases,
   });
 
+  const displayAvatar = avatarPreview || resolveAssetUrl(avatar);
+  const skillsList = useMemo(() => splitList(skills), [skills]);
+
   const updateProfileMutation = useMutation({
     mutationFn: updateProfile,
     onSuccess: () => {
+      loadUser();
+    },
+  });
+
+  const uploadAvatarMutation = useMutation({
+    mutationFn: uploadAvatar,
+    onSuccess: (updatedUser) => {
+      setAvatar(updatedUser.avatar ?? '');
+      setAvatarPreview('');
       loadUser();
     },
   });
@@ -93,89 +136,161 @@ export function ProfilePage() {
 
   return (
     <section className="w-full space-y-4">
-      <LiquidCard className="rounded-xl p-4 sm:p-6">
-        <div className="grid gap-5 xl:grid-cols-[minmax(0,1fr)_30rem] xl:items-center">
-          <div className="flex items-center gap-4">
-            <div className="grid h-20 w-20 shrink-0 place-items-center overflow-hidden rounded-full border border-[var(--accent-border)] bg-[var(--accent-bg)] text-xl font-semibold text-[var(--accent)]">
-              {avatar ? (
-                <img
-                  className="h-full w-full object-cover"
-                  src={avatar}
-                  alt={nome}
+      <LiquidCard className="overflow-hidden rounded-xl p-0">
+        <div className="border-b border-[var(--border)] bg-[var(--surface-soft)] p-4 sm:p-6">
+          <div className="grid gap-5 xl:grid-cols-[minmax(0,1fr)_24rem] xl:items-end">
+            <div className="flex flex-col gap-4 sm:flex-row sm:items-center">
+              <div className="relative h-28 w-28 shrink-0 overflow-hidden rounded-xl border border-[var(--accent-border)] bg-[var(--accent-bg)]">
+                {displayAvatar ? (
+                  <img className="h-full w-full object-cover" src={displayAvatar} alt={nome} />
+                ) : (
+                  <div className="grid h-full w-full place-items-center text-3xl font-semibold text-[var(--accent)]">
+                    {getInitials(nome)}
+                  </div>
+                )}
+                <label className="absolute bottom-2 right-2 grid h-9 w-9 cursor-pointer place-items-center rounded-md bg-[var(--surface)] text-[var(--text)] shadow-sm transition hover:brightness-105">
+                  <Camera className="h-4 w-4" />
+                  <input
+                    className="sr-only"
+                    type="file"
+                    accept="image/*"
+                    onChange={(event) => {
+                      const file = event.target.files?.[0];
+                      if (!file) {
+                        return;
+                      }
+                      setAvatarPreview(URL.createObjectURL(file));
+                      uploadAvatarMutation.mutate(file);
+                    }}
+                  />
+                </label>
+              </div>
+
+              <div className="min-w-0">
+                <p className="flex items-center gap-2 text-sm font-medium text-[var(--iso-primary)]">
+                  <Sparkles className="h-4 w-4" />
+                  Perfil profissional do aluno
+                </p>
+                <h1 className="mt-2 text-2xl font-semibold text-[var(--text-h)] sm:text-3xl">
+                  {nome || 'Seu nome'}
+                </h1>
+                <p className="mt-2 text-sm leading-6 text-[var(--text-muted)]">
+                  {headline || 'Conte quem você é, onde quer chegar e quais áreas da engenharia quer dominar.'}
+                </p>
+                <div className="mt-3 flex flex-wrap gap-2 text-xs font-semibold text-[var(--text-muted)]">
+                  {location && (
+                    <span className="inline-flex items-center gap-1 rounded-md border border-[var(--border)] bg-[var(--surface)] px-2.5 py-1">
+                      <MapPin className="h-3.5 w-3.5" />
+                      {location}
+                    </span>
+                  )}
+                  <span className="rounded-md border border-[var(--border)] bg-[var(--surface)] px-2.5 py-1">
+                    Nível {user?.nivel ?? 1} | {analytics?.xpTotal ?? 0} XP
+                  </span>
+                </div>
+              </div>
+            </div>
+
+            <div className="rounded-xl border border-[var(--border)] bg-[var(--surface)] p-4">
+              <p className="text-xs font-bold uppercase tracking-[0.2em] text-[var(--text-muted)]">
+                Prévia de currículo
+              </p>
+              <p className="mt-3 text-sm leading-6 text-[var(--text-soft)]">
+                Este perfil prepara a base para certificados, portfólio e uma página pública compartilhável.
+              </p>
+              <div className="mt-4 flex flex-wrap gap-2">
+                {skillsList.slice(0, 5).map((skill) => (
+                  <span key={skill} className="rounded-md bg-[var(--iso-primary-soft)] px-2.5 py-1 text-xs font-semibold text-[var(--iso-primary)]">
+                    {skill}
+                  </span>
+                ))}
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div className="grid gap-5 p-4 sm:p-6 xl:grid-cols-[minmax(0,1fr)_22rem]">
+          <div className="grid gap-4">
+            <div className="grid gap-3 sm:grid-cols-2">
+              <ProfileTextField label="Nome" value={nome} onChange={setNome} />
+              <ProfileTextField label="Título profissional" value={headline} onChange={setHeadline} placeholder="Ex: Estudante de engenharia civil" />
+              <ProfileTextField label="Cidade/estado" value={location} onChange={setLocation} placeholder="Rio de Janeiro, RJ" />
+              <ProfileTextField label="WhatsApp/suporte profissional" value={whatsapp} onChange={setWhatsapp} placeholder="(21) 99999-9999" />
+            </div>
+
+            <ProfileTextArea label="Bio" value={bio} onChange={setBio} placeholder="Escreva uma apresentação curta sobre você, seus interesses e objetivos." />
+            <ProfileTextArea label="Experiência" value={experience} onChange={setExperience} placeholder="Projetos, estágios, atividades acadêmicas, monitorias ou vivências técnicas." />
+            <ProfileTextArea label="Formação" value={education} onChange={setEducation} placeholder="Curso, instituição, período, formações complementares." />
+            <ProfileTextArea label="Habilidades técnicas" value={skills} onChange={setSkills} placeholder="AutoCAD, Excel, Revit, cálculo estrutural, hidráulica..." />
+            <ProfileTextArea label="Áreas de interesse" value={interests} onChange={setInterests} placeholder="Estruturas, geotecnia, saneamento, transportes..." />
+          </div>
+
+          <aside className="space-y-4">
+            <div className="rounded-xl border border-[var(--border)] bg-[var(--surface-soft)] p-4">
+              <p className="text-sm font-semibold text-[var(--text)]">Imagem do perfil</p>
+              <p className="mt-2 text-sm leading-6 text-[var(--text-muted)]">
+                Envie uma foto ou cole uma URL. O upload já salva automaticamente.
+              </p>
+              <label className="mt-4 block">
+                <span className="mb-2 flex items-center gap-2 text-sm text-[var(--text-muted)]">
+                  <Upload className="h-4 w-4" />
+                  URL alternativa do avatar
+                </span>
+                <input
+                  className="h-11 w-full rounded-md border border-[var(--border)] bg-[var(--surface)] px-3 text-[var(--text)] outline-none transition focus:border-[var(--accent-border)]"
+                  value={avatar}
+                  onChange={(event) => setAvatar(event.target.value)}
+                  placeholder="https://..."
                 />
-              ) : (
-                getInitials(nome)
+              </label>
+              {uploadAvatarMutation.isPending && (
+                <p className="mt-3 text-sm text-[var(--text-muted)]">Enviando imagem...</p>
               )}
             </div>
 
-            <div>
-              <p className="text-sm font-medium text-[var(--iso-primary)]">
-                Perfil acadêmico
-              </p>
-              <h1 className="mt-2 text-2xl font-semibold text-[var(--text-h)] sm:text-3xl">
-                Sua evolução técnica
-              </h1>
-              <p className="mt-2 text-sm text-[var(--text-muted)]">
-                Ajuste sua identidade visual e acompanhe seu progresso.
-              </p>
+            <div className="rounded-xl border border-[var(--border)] bg-[var(--surface-soft)] p-4">
+              <p className="text-sm font-semibold text-[var(--text)]">Links profissionais</p>
+              <div className="mt-3 grid gap-3">
+                <ProfileTextField icon={<ExternalLink className="h-4 w-4" />} label="LinkedIn" value={linkedinUrl} onChange={setLinkedinUrl} placeholder="https://linkedin.com/in/..." />
+                <ProfileTextField icon={<ExternalLink className="h-4 w-4" />} label="GitHub" value={githubUrl} onChange={setGithubUrl} placeholder="https://github.com/..." />
+                <ProfileTextField icon={<ExternalLink className="h-4 w-4" />} label="Portfólio/site" value={portfolioUrl} onChange={setPortfolioUrl} placeholder="https://..." />
+                <ProfileTextField icon={<Camera className="h-4 w-4" />} label="Instagram" value={instagramUrl} onChange={setInstagramUrl} placeholder="https://instagram.com/..." />
+              </div>
             </div>
-          </div>
 
-          <div className="grid gap-3 sm:grid-cols-2">
-            <label className="block">
-              <span className="mb-2 block text-sm text-[var(--text-muted)]">
-                Nome
-              </span>
-              <input
-                className="h-11 w-full rounded-md border border-[var(--border)] bg-[var(--surface-soft)] px-3 text-[var(--text)] outline-none transition focus:border-[var(--accent-border)]"
-                value={nome}
-                onChange={(event) => setNome(event.target.value)}
-              />
-            </label>
+            <IsoButton
+              className="w-full"
+              disabled={updateProfileMutation.isPending}
+              onClick={() =>
+                updateProfileMutation.mutate({
+                  nome,
+                  avatar,
+                  headline: headline || null,
+                  location: location || null,
+                  bio: bio || null,
+                  experience: experience || null,
+                  education: education || null,
+                  skills: skills || null,
+                  interests: interests || null,
+                  linkedinUrl: linkedinUrl || null,
+                  githubUrl: githubUrl || null,
+                  portfolioUrl: portfolioUrl || null,
+                  instagramUrl: instagramUrl || null,
+                  whatsapp: whatsapp || null,
+                })
+              }
+            >
+              <Save className="h-4 w-4" />
+              {updateProfileMutation.isPending ? 'Salvando...' : 'Salvar perfil profissional'}
+            </IsoButton>
 
-            <label className="block">
-              <span className="mb-2 flex items-center gap-2 text-sm text-[var(--text-muted)]">
-                <Camera className="h-4 w-4" />
-                URL do avatar
-              </span>
-              <input
-                className="h-11 w-full rounded-md border border-[var(--border)] bg-[var(--surface-soft)] px-3 text-[var(--text)] outline-none transition focus:border-[var(--accent-border)]"
-                value={avatar}
-                onChange={(event) => setAvatar(event.target.value)}
-                placeholder="https://..."
-              />
-            </label>
-
-            <div className="sm:col-span-2">
-              <IsoButton
-                className="w-full"
-                disabled={updateProfileMutation.isPending}
-                onClick={() =>
-                  updateProfileMutation.mutate({
-                    nome,
-                    avatar,
-                  })
-                }
-              >
-                <Save className="h-4 w-4" />
-                {updateProfileMutation.isPending
-                  ? 'Salvando...'
-                  : 'Salvar perfil'}
-              </IsoButton>
-
-              {updateProfileMutation.isSuccess && (
-                <p className="mt-3 text-sm text-[var(--success-500)]">
-                  Perfil atualizado com sucesso.
-                </p>
-              )}
-
-              {updateProfileMutation.isError && (
-                <p className="mt-3 text-sm text-red-300">
-                  Não foi possível atualizar o perfil.
-                </p>
-              )}
-            </div>
-          </div>
+            {updateProfileMutation.isSuccess && (
+              <p className="text-sm text-[var(--success-500)]">Perfil atualizado com sucesso.</p>
+            )}
+            {updateProfileMutation.isError && (
+              <p className="text-sm text-red-300">Não foi possível atualizar o perfil.</p>
+            )}
+          </aside>
         </div>
       </LiquidCard>
 
@@ -418,6 +533,59 @@ function AccountPasswordField({
         value={value}
         onChange={(event) => onChange(event.target.value)}
         className="h-11 w-full rounded-md border border-[var(--border)] bg-[var(--surface-soft)] px-3 text-[var(--text)] outline-none transition focus:border-[var(--accent-border)]"
+      />
+    </label>
+  );
+}
+
+function ProfileTextField({
+  icon,
+  label,
+  value,
+  onChange,
+  placeholder,
+}: {
+  icon?: ReactNode;
+  label: string;
+  value: string;
+  onChange: (value: string) => void;
+  placeholder?: string;
+}) {
+  return (
+    <label className="block">
+      <span className="mb-2 flex items-center gap-2 text-sm text-[var(--text-muted)]">
+        {icon}
+        {label}
+      </span>
+      <input
+        className="h-11 w-full rounded-md border border-[var(--border)] bg-[var(--surface-soft)] px-3 text-[var(--text)] outline-none transition placeholder:text-[var(--text-muted)] focus:border-[var(--accent-border)]"
+        value={value}
+        onChange={(event) => onChange(event.target.value)}
+        placeholder={placeholder}
+      />
+    </label>
+  );
+}
+
+function ProfileTextArea({
+  label,
+  value,
+  onChange,
+  placeholder,
+}: {
+  label: string;
+  value: string;
+  onChange: (value: string) => void;
+  placeholder?: string;
+}) {
+  return (
+    <label className="block">
+      <span className="mb-2 block text-sm text-[var(--text-muted)]">{label}</span>
+      <textarea
+        className="min-h-28 w-full resize-y rounded-md border border-[var(--border)] bg-[var(--surface-soft)] px-3 py-3 leading-6 text-[var(--text)] outline-none transition placeholder:text-[var(--text-muted)] focus:border-[var(--accent-border)]"
+        value={value}
+        onChange={(event) => onChange(event.target.value)}
+        placeholder={placeholder}
       />
     </label>
   );

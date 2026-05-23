@@ -31,9 +31,9 @@ import { useLessonAttachments } from '../attachments/useLessonAttachments';
 import { useLessonExercises } from '../exercises/useLessonExercises';
 import { completeLesson, getMyProgress, updateLessonNotes } from '../progress/progress.service';
 import { getLessonById } from './lessons.service';
+import { CourseCurriculumSidebar } from './components/CourseCurriculumSidebar';
 import { LessonNavigationCard } from './components/LessonNavigationCard';
 import { LessonStudyPanel } from './components/LessonStudyPanel';
-import { ModuleLessonsList } from './components/ModuleLessonsList';
 
 type LessonTab = 'content' | 'attachments' | 'exercises' | 'notes';
 
@@ -348,7 +348,9 @@ export function LessonPage() {
     course ? `/courses/${course.slug}/lessons/${targetLesson.slug}` : `/lessons/${targetLesson.id}`;
 
   const navigateToLessonById = (lessonId: string) => {
-    const targetLesson = moduleLessons.find((item) => item.id === lessonId);
+    const targetLesson = course?.modulos
+      .flatMap((module) => module.aulas)
+      .find((item) => item.id === lessonId);
     navigateWithUnsavedGuard(targetLesson ? lessonUrl(targetLesson) : `/lessons/${lessonId}`);
   };
 
@@ -617,12 +619,14 @@ export function LessonPage() {
                 onComplete={() => completeLessonMutation.mutate()}
               />
 
-              <ModuleLessonsList
-                currentLessonId={lesson.id}
-                lessons={moduleLessons}
-                progress={progress}
-                onNavigateLesson={navigateToLessonById}
-              />
+              {course && (
+                <CourseCurriculumSidebar
+                  course={course}
+                  currentLessonId={lesson.id}
+                  progress={progress}
+                  onNavigateLesson={navigateToLessonById}
+                />
+              )}
 
               <LessonNavigationCard
                 previousLesson={previousLesson}

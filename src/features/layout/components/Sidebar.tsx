@@ -13,6 +13,7 @@ import {
 import { NavLink } from 'react-router-dom';
 
 import { useAuthStore } from '../../../core/store/authStore';
+import { resolveAssetUrl } from '../../../core/utils/assetUrl';
 
 const navigation = [
   { label: 'Dashboard', href: '/dashboard', icon: LayoutDashboard },
@@ -23,6 +24,20 @@ const navigation = [
   { label: 'Ranking', href: '/ranking', icon: Trophy },
   { label: 'Comunidade', href: '/community', icon: Users },
 ];
+
+function getInitials(name?: string) {
+  if (!name) {
+    return 'IS';
+  }
+
+  return name
+    .split(' ')
+    .filter(Boolean)
+    .slice(0, 2)
+    .map((part) => part[0])
+    .join('')
+    .toUpperCase();
+}
 
 type SidebarProps = {
   isCollapsed: boolean;
@@ -37,6 +52,7 @@ export function Sidebar({
   onCloseMobile,
 }: SidebarProps) {
   const user = useAuthStore((state) => state.user);
+  const avatarUrl = resolveAssetUrl(user?.avatar);
 
   const canManageContent = user?.role === 'PROFESSOR' || user?.role === 'ADMIN';
   const canManagePlatform = user?.role === 'ADMIN';
@@ -148,6 +164,38 @@ export function Sidebar({
         </nav>
 
         <div className={isCollapsed ? 'border-t border-[var(--border)] p-2' : 'p-3'}>
+          <NavLink
+            to="/profile"
+            onClick={onCloseMobile}
+            className={({ isActive }) =>
+              [
+                'mb-2 flex items-center rounded-md border transition',
+                isCollapsed ? 'justify-center border-transparent p-1.5' : 'gap-3 border-[var(--border)] bg-[var(--surface-soft)] p-2.5',
+                isActive ? 'border-[var(--accent-border)] bg-[var(--iso-primary-soft)]' : 'hover:border-[var(--border-strong)] hover:bg-[var(--surface-soft)]',
+              ].join(' ')
+            }
+            title={isCollapsed ? user?.nome ?? 'Perfil' : undefined}
+          >
+            <span className="grid h-9 w-9 shrink-0 place-items-center overflow-hidden rounded-full border border-[var(--accent-border)] bg-[var(--accent-bg)] text-xs font-semibold text-[var(--accent)]">
+              {avatarUrl ? (
+                <img className="h-full w-full object-cover" src={avatarUrl} alt={user?.nome ?? 'Perfil'} />
+              ) : (
+                getInitials(user?.nome)
+              )}
+            </span>
+
+            {!isCollapsed && (
+              <span className="min-w-0">
+                <span className="block truncate text-sm font-semibold text-[var(--text)]">
+                  {user?.nome ?? 'Aluno'}
+                </span>
+                <span className="block truncate text-xs text-[var(--text-muted)]">
+                  {user?.headline ?? `Nível ${user?.nivel ?? 1}`}
+                </span>
+              </span>
+            )}
+          </NavLink>
+
           <div className={isCollapsed ? 'flex justify-center py-2' : 'rounded-md border border-[var(--border)] bg-[var(--surface-soft)] p-3'}>
             {isCollapsed ? (
               <div className="h-2.5 w-2.5 rounded-full bg-[var(--success-500)]" title="Plataforma ativa" />

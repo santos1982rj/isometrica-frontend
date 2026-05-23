@@ -1,4 +1,5 @@
 import {
+  ArrowRight,
   BookOpen,
   CheckCircle2,
   CircleCheckBig,
@@ -13,7 +14,7 @@ import {
   Trophy,
   X,
 } from 'lucide-react';
-import { useEffect, useState } from 'react';
+import { useEffect, useState, type ReactNode } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { Payment, initMercadoPago } from '@mercadopago/sdk-react';
@@ -257,6 +258,212 @@ export function CourseDetailsPage() {
   const paymentRejected =
     completedPayment?.paymentStatus === 'rejected' ||
     completedPayment?.persisted.status === 'RECUSADO';
+
+  const allLessons = course.modulos.flatMap((module) =>
+    module.aulas.map((lesson) => ({
+      ...lesson,
+      moduleId: module.id,
+      moduleTitle: module.titulo,
+      moduleOrder: module.ordem,
+    })),
+  );
+  const courseProgress = progress?.filter((item) => item.aula.modulo.curso.id === course.id) ?? [];
+  const completedLessonIds = new Set(
+    courseProgress.filter((item) => item.concluida).map((item) => item.aulaId),
+  );
+  const continueLesson =
+    allLessons.find((lesson) => !completedLessonIds.has(lesson.id)) ?? allLessons[0];
+  const continueLessonUrl = continueLesson
+    ? `/courses/${course.slug}/lessons/${continueLesson.slug}`
+    : `/courses/${course.slug}`;
+
+  if (course.isEnrolled) {
+    return (
+      <section className="w-full space-y-4">
+        <Seo
+          title={course.titulo}
+          description={course.resumo ?? course.descricao}
+          image={course.imagem}
+          type="article"
+        />
+
+        <LiquidCard className="relative overflow-hidden rounded-xl p-4 sm:p-5 lg:p-6">
+          {course.imagem && (
+            <>
+              <img
+                alt=""
+                className="absolute inset-0 h-full w-full object-cover opacity-16"
+                src={course.imagem}
+              />
+              <div className="absolute inset-0 bg-[linear-gradient(90deg,var(--surface)_16%,rgba(0,0,0,0.28)_100%)]" />
+            </>
+          )}
+
+          <div className="relative z-10 grid gap-5 xl:grid-cols-[minmax(0,1fr)_22rem] xl:items-end">
+            <div>
+              <IsoBadge variant="success">
+                <CheckCircle2 className="mr-1 h-3.5 w-3.5" />
+                Matriculado
+              </IsoBadge>
+              <p className="mt-6 text-xs font-bold uppercase tracking-[0.22em] text-[var(--text-muted)]">
+                {course.categoria ?? 'Engenharia'} | {formatLevel(course.nivel)}
+              </p>
+              <h1 className="mt-3 text-2xl font-semibold leading-tight text-[var(--text)] sm:text-3xl">
+                {course.titulo}
+              </h1>
+              <p className="mt-3 max-w-4xl text-sm leading-6 text-[var(--text-soft)]">
+                {course.resumo ?? course.descricao}
+              </p>
+
+              <div className="mt-5 grid gap-2 sm:grid-cols-3">
+                <StudentMetric label="Progresso" value={`${completionPercentage}%`} />
+                <StudentMetric label="Aulas concluídas" value={`${completedLessons}/${totalLessons}`} />
+                <StudentMetric label="Módulos" value={course.modulos.length} />
+              </div>
+            </div>
+
+            <div className="rounded-xl border border-[var(--border)] bg-[var(--surface)]/90 p-4 shadow-sm shadow-black/5">
+              <div className="mb-3 flex items-center justify-between text-sm">
+                <span className="font-semibold text-[var(--text)]">Sua evolução</span>
+                <span className="numeric font-semibold text-[var(--secondary-700)] dark:text-[var(--secondary-300)]">
+                  {completionPercentage}%
+                </span>
+              </div>
+              <div className="h-2 overflow-hidden rounded-full bg-[var(--surface-soft)]">
+                <div
+                  className="h-full rounded-full bg-gradient-to-r from-[var(--secondary-500)] to-[var(--success-500)]"
+                  style={{ width: `${completionPercentage}%` }}
+                />
+              </div>
+              <p className="mt-3 text-sm leading-6 text-[var(--text-soft)]">
+                {continueLesson
+                  ? `Próxima aula: ${continueLesson.titulo}`
+                  : 'Todas as aulas foram concluídas.'}
+              </p>
+              <IsoButton
+                className="mt-4 w-full"
+                onClick={() => navigate(continueLessonUrl)}
+              >
+                <PlayCircle className="h-5 w-5" />
+                {completionPercentage >= 100 ? 'Revisar curso' : 'Continuar estudando'}
+              </IsoButton>
+            </div>
+          </div>
+        </LiquidCard>
+
+        <div className="grid gap-4 xl:grid-cols-[minmax(0,1fr)_22rem]">
+          <LiquidCard className="rounded-xl p-4 sm:p-5">
+            <div className="flex flex-col gap-3 border-b border-[var(--border)] pb-4 sm:flex-row sm:items-end sm:justify-between">
+              <div>
+                <p className="text-xs font-bold uppercase tracking-[0.22em] text-[var(--secondary-700)] dark:text-[var(--secondary-300)]">
+                  Central do curso
+                </p>
+                <h2 className="mt-2 text-2xl font-semibold text-[var(--text)]">
+                  Continue pela trilha
+                </h2>
+              </div>
+              <span className="text-sm font-semibold text-[var(--text-muted)]">
+                {totalLessons} aulas
+              </span>
+            </div>
+
+            <div className="mt-4 space-y-3">
+              {course.modulos.map((module) => {
+                const moduleCompleted = module.aulas.filter((lesson) =>
+                  completedLessonIds.has(lesson.id),
+                ).length;
+
+                return (
+                  <div
+                    key={module.id}
+                    className="rounded-xl border border-[var(--border)] bg-[var(--surface-soft)] p-3"
+                  >
+                    <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+                      <div>
+                        <p className="text-xs font-semibold uppercase text-[var(--text-muted)]">
+                          Módulo {module.ordem}
+                        </p>
+                        <h3 className="mt-1 font-semibold text-[var(--text)]">{module.titulo}</h3>
+                      </div>
+                      <span className="numeric text-sm font-semibold text-[var(--text-muted)]">
+                        {moduleCompleted}/{module.aulas.length}
+                      </span>
+                    </div>
+
+                    <div className="mt-3 grid gap-2">
+                      {module.aulas.map((lesson) => {
+                        const isLessonCompleted = completedLessonIds.has(lesson.id);
+                        const isNextLesson = continueLesson?.id === lesson.id && !isLessonCompleted;
+
+                        return (
+                          <button
+                            key={lesson.id}
+                            type="button"
+                            onClick={() => navigate(`/courses/${course.slug}/lessons/${lesson.slug}`)}
+                            className={[
+                              'group flex w-full items-center gap-3 rounded-lg border p-3 text-left transition',
+                              isNextLesson
+                                ? 'border-[var(--accent-border)] bg-[var(--iso-primary-soft)]'
+                                : 'border-[var(--border)] bg-[var(--surface)] hover:border-[var(--border-strong)]',
+                            ].join(' ')}
+                          >
+                            <span className="grid h-9 w-9 shrink-0 place-items-center rounded-md border border-[var(--border)] bg-[var(--surface-soft)]">
+                              {isLessonCompleted ? (
+                                <CheckCircle2 className="h-4 w-4 text-[var(--success-500)]" />
+                              ) : (
+                                <PlayCircle className="h-4 w-4 text-[var(--iso-primary)]" />
+                              )}
+                            </span>
+                            <span className="min-w-0 flex-1">
+                              <span className="block text-sm font-semibold text-[var(--text)]">
+                                {lesson.titulo}
+                              </span>
+                              <span className="mt-1 block text-xs text-[var(--text-muted)]">
+                                {lesson.duracao ?? 0} min
+                                {isNextLesson ? ' | próxima aula' : ''}
+                              </span>
+                            </span>
+                            <ArrowRight className="h-4 w-4 shrink-0 text-[var(--text-muted)] transition group-hover:translate-x-0.5 group-hover:text-[var(--iso-primary)]" />
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </LiquidCard>
+
+          <aside className="space-y-4 xl:sticky xl:top-24 xl:self-start">
+            <LiquidCard className="rounded-xl p-4">
+              <p className="text-xs font-bold uppercase tracking-[0.22em] text-[var(--text-muted)]">
+                Acesso
+              </p>
+              <h2 className="mt-2 text-lg font-semibold text-[var(--text)]">
+                Seu curso está liberado
+              </h2>
+              <div className="mt-4 space-y-2 text-sm leading-6 text-[var(--text-soft)]">
+                <p>Assista às aulas, salve notas e acompanhe sua evolução.</p>
+                <p>Use a página da aula para baixar materiais e resolver exercícios.</p>
+              </div>
+            </LiquidCard>
+
+            <LiquidCard className="rounded-xl p-4">
+              <p className="text-xs font-bold uppercase tracking-[0.22em] text-[var(--text-muted)]">
+                Sobre a trilha
+              </p>
+              <div className="mt-4 grid gap-2">
+                <CourseInfoRow icon={<Clock3 className="h-4 w-4" />} label={`${course.cargaHoraria ?? 0}h de carga horária`} />
+                <CourseInfoRow icon={<BookOpen className="h-4 w-4" />} label={`${course.modulos.length} módulos`} />
+                <CourseInfoRow icon={<Trophy className="h-4 w-4" />} label="Exercícios e materiais técnicos" />
+              </div>
+            </LiquidCard>
+          </aside>
+        </div>
+      </section>
+    );
+  }
+
   return (
     <section className="w-full space-y-4">
       <Seo
@@ -834,5 +1041,25 @@ export function CourseDetailsPage() {
         ))}
       </div>
     </section>
+  );
+}
+
+function StudentMetric({ label, value }: { label: string; value: string | number }) {
+  return (
+    <div className="rounded-md border border-[var(--border)] bg-[var(--surface)]/90 px-3 py-3">
+      <p className="text-xs uppercase tracking-[0.18em] text-[var(--text-muted)]">{label}</p>
+      <strong className="numeric mt-2 block text-xl font-semibold text-[var(--text)]">
+        {value}
+      </strong>
+    </div>
+  );
+}
+
+function CourseInfoRow({ icon, label }: { icon: ReactNode; label: string }) {
+  return (
+    <div className="flex items-center gap-3 rounded-lg border border-[var(--border)] bg-[var(--surface-soft)] p-3 text-sm font-semibold text-[var(--text-soft)]">
+      <span className="text-[var(--iso-primary)]">{icon}</span>
+      <span>{label}</span>
+    </div>
   );
 }
