@@ -14,7 +14,7 @@ import {
   Video,
   X,
 } from 'lucide-react';
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 
 import { IsoBadge } from '../../components/ui/IsoBadge';
@@ -58,6 +58,8 @@ const initialCourseForm: CourseManagementInput = {
   descricao: '',
   resumo: '',
   imagem: null,
+  beneficios: '',
+  publicoAlvo: '',
   isPremium: true,
   preco: null,
   status: 'RASCUNHO',
@@ -106,6 +108,8 @@ function normalizeCourseForm(form: CourseManagementInput) {
     ...form,
     resumo: form.resumo || null,
     imagem: form.imagem || null,
+    beneficios: form.beneficios || null,
+    publicoAlvo: form.publicoAlvo || null,
     categoria: form.categoria || null,
   };
 }
@@ -133,6 +137,8 @@ function courseToForm(course: TeacherCourse): CourseManagementInput {
     descricao: course.descricao,
     resumo: course.resumo ?? '',
     imagem: course.imagem,
+    beneficios: course.beneficios ?? '',
+    publicoAlvo: course.publicoAlvo ?? '',
     isPremium: course.isPremium,
     preco: course.preco,
     status: course.status,
@@ -212,8 +218,11 @@ export function TeacherDashboardPage() {
   const [editingModuleId, setEditingModuleId] = useState('');
   const [editingLessonId, setEditingLessonId] = useState('');
   const [courseForm, setCourseForm] = useState(initialCourseForm);
+  const [courseWizardStep, setCourseWizardStep] = useState(0);
   const [moduleForm, setModuleForm] = useState(initialModuleForm);
   const [lessonForm, setLessonForm] = useState(initialLessonForm);
+  const [bulkLessonsText, setBulkLessonsText] = useState('');
+  const [isLessonEditorOpen, setIsLessonEditorOpen] = useState(false);
   const [exerciseForm, setExerciseForm] = useState(initialExerciseForm);
   const [attachmentFile, setAttachmentFile] = useState<File | null>(null);
   const [isCourseDirty, setIsCourseDirty] = useState(false);
@@ -290,6 +299,31 @@ export function TeacherDashboardPage() {
     onSuccess: async () => {
       setIsLessonDirty(false);
       resetLessonForm((selectedModule?.aulas.length ?? 0) + 2, true);
+      await invalidateCourses();
+    },
+  });
+
+  const createBulkLessonsMutation = useMutation({
+    mutationFn: async ({
+      moduleId,
+      startOrder,
+      titles,
+    }: {
+      moduleId: string;
+      startOrder: number;
+      titles: string[];
+    }) => {
+      for (const [index, title] of titles.entries()) {
+        await createTeacherLesson(moduleId, {
+          ...initialLessonForm,
+          titulo: title,
+          slug: slugify(title),
+          ordem: startOrder + index,
+        });
+      }
+    },
+    onSuccess: async () => {
+      setBulkLessonsText('');
       await invalidateCourses();
     },
   });
@@ -395,6 +429,55 @@ export function TeacherDashboardPage() {
     },
   });
 
+  const duplicateModuleMutation = useMutation({
+    mutationFn: async ({
+      courseId,
+      module,
+      ordem,
+    }: {
+      courseId: string;
+      module: TeacherModule;
+      ordem: number;
+    }) => {
+      const duplicatedModule = await createTeacherModule(courseId, {
+        titulo: `${module.titulo} (cópia)`,
+        descricao: module.descricao,
+        ordem,
+      });
+
+      for (const [index, lesson] of module.aulas.entries()) {
+        await createTeacherLesson(duplicatedModule.id, {
+          ...lessonToForm(lesson),
+          titulo: `${lesson.titulo} (cópia)`,
+          slug: `${lesson.slug}-copia-${Date.now()}-${index + 1}`,
+          ordem: index + 1,
+        });
+      }
+    },
+    onSuccess: async () => {
+      await invalidateCourses();
+    },
+  });
+
+  const duplicateLessonMutation = useMutation({
+    mutationFn: ({
+      module,
+      lesson,
+    }: {
+      module: TeacherModule;
+      lesson: TeacherLesson;
+    }) =>
+      createTeacherLesson(module.id, {
+        ...lessonToForm(lesson),
+        titulo: `${lesson.titulo} (cópia)`,
+        slug: `${lesson.slug}-copia-${Date.now()}`,
+        ordem: module.aulas.length + 1,
+      }),
+    onSuccess: async () => {
+      await invalidateCourses();
+    },
+  });
+
   const createExerciseMutation = useMutation({
     mutationFn: (data: ExerciseManagementInput) =>
       createTeacherExercise(selectedLessonId, data),
@@ -417,6 +500,37 @@ export function TeacherDashboardPage() {
       });
     },
   });
+
+  useEffect(() => {
+    const canAutoSaveDraft =
+      editingCourseId &&
+      isCourseDirty &&
+      courseForm.status === 'RASCUNHO' &&
+      courseForm.titulo.trim().length >= 3 &&
+      courseForm.slug.trim().length >= 3 &&
+      courseForm.descricao.trim().length >= 10 &&
+      (!courseForm.isPremium || Number(courseForm.preco ?? 0) > 0) &&
+      !createCourseMutation.isPending &&
+      !updateCourseMutation.isPending;
+
+    if (!canAutoSaveDraft) {
+      return;
+    }
+
+    const timeoutId = window.setTimeout(async () => {
+      await updateTeacherCourse(editingCourseId, normalizeCourseForm(courseForm));
+      setIsCourseDirty(false);
+      await invalidateCourses();
+    }, 1800);
+
+    return () => window.clearTimeout(timeoutId);
+  }, [
+    courseForm,
+    createCourseMutation.isPending,
+    editingCourseId,
+    isCourseDirty,
+    updateCourseMutation.isPending,
+  ]);
 
   function confirmDiscard(label: string) {
     return window.confirm(
@@ -447,6 +561,7 @@ export function TeacherDashboardPage() {
     }
     setEditingCourseId('');
     setCourseForm(initialCourseForm);
+    setCourseWizardStep(0);
     setIsCourseDirty(false);
   }
 
@@ -472,6 +587,7 @@ export function TeacherDashboardPage() {
       ...initialLessonForm,
       ordem,
     });
+    setIsLessonEditorOpen(false);
     setIsLessonDirty(false);
   }
 
@@ -536,6 +652,7 @@ export function TeacherDashboardPage() {
     setEditingCourseId(course.id);
     setSelectedCourseId(course.id);
     setCourseForm(courseToForm(course));
+    setCourseWizardStep(0);
     setIsCourseDirty(false);
   }
 
@@ -558,9 +675,34 @@ export function TeacherDashboardPage() {
     setEditingLessonId(lesson.id);
     setSelectedLessonId(lesson.id);
     setLessonForm(lessonToForm(lesson));
+    setIsLessonEditorOpen(true);
     setIsLessonDirty(false);
     setExerciseForm(initialExerciseForm);
     setIsExerciseDirty(false);
+  }
+
+  function startLessonCreate() {
+    if (!selectedModuleId) {
+      return;
+    }
+
+    resetLessonForm((selectedModule?.aulas.length ?? 0) + 1, true);
+    setIsLessonEditorOpen(true);
+  }
+
+  function saveLessonFromModal() {
+    if (!selectedModuleId) {
+      return;
+    }
+
+    const payload = normalizeLessonForm(lessonForm);
+
+    if (editingLessonId) {
+      updateLessonMutation.mutate(payload);
+      return;
+    }
+
+    createLessonMutation.mutate(payload);
   }
 
   function handleDeleteCourse(courseId: string) {
@@ -634,6 +776,41 @@ export function TeacherDashboardPage() {
     reorderLessonMutation.mutate({
       currentLesson,
       targetLesson,
+    });
+  }
+
+  function handleCreateInlineModule() {
+    if (!selectedCourseId) {
+      return;
+    }
+
+    const nextOrder = (selectedCourse?.modulos.length ?? 0) + 1;
+
+    createModuleMutation.mutate({
+      titulo: `Novo módulo ${nextOrder}`,
+      descricao: null,
+      ordem: nextOrder,
+    });
+  }
+
+  function handleCreateBulkLessons() {
+    if (!selectedModuleId) {
+      return;
+    }
+
+    const titles = bulkLessonsText
+      .split(/\r?\n/)
+      .map((title) => title.trim())
+      .filter(Boolean);
+
+    if (titles.length === 0) {
+      return;
+    }
+
+    createBulkLessonsMutation.mutate({
+      moduleId: selectedModuleId,
+      startOrder: (selectedModule?.aulas.length ?? 0) + 1,
+      titles,
     });
   }
 
@@ -797,41 +974,26 @@ export function TeacherDashboardPage() {
 
       <div className="grid gap-6 xl:grid-cols-[0.95fr_1.05fr]">
         <LiquidCard>
-          <div className="flex items-center justify-between gap-3">
-            <div>
-              <h2 className="text-2xl font-black text-[var(--text)]">
-                {editingCourseId ? 'Editar curso' : 'Novo curso'}
-              </h2>
-              <p
-                className={[
-                  'mt-2 inline-flex rounded-full border px-2.5 py-1 text-[11px] font-bold',
-                  getEditorStatus(
-                    isCourseDirty,
-                    createCourseMutation.isPending || updateCourseMutation.isPending,
-                  ).className,
-                ].join(' ')}
-              >
-                {
-                  getEditorStatus(
-                    isCourseDirty,
-                    createCourseMutation.isPending || updateCourseMutation.isPending,
-                  ).label
-                }
-              </p>
-            </div>
-
-            {editingCourseId && (
-              <IsoButton variant="soft" onClick={() => resetCourseForm()}>
-                <X className="h-4 w-4" />
-                Cancelar
-              </IsoButton>
-            )}
-          </div>
-
-          <form
-            className="mt-6 grid gap-4"
-            onSubmit={(event) => {
-              event.preventDefault();
+          <CourseWizardForm
+            course={selectedCourse}
+            editingCourseId={editingCourseId}
+            form={courseForm}
+            isDirty={isCourseDirty}
+            isPending={
+              createCourseMutation.isPending ||
+              updateCourseMutation.isPending
+            }
+            step={courseWizardStep}
+            onCancel={() => resetCourseForm()}
+            onFieldChange={(patch) => {
+              setIsCourseDirty(true);
+              setCourseForm((current) => ({
+                ...current,
+                ...patch,
+              }));
+            }}
+            onStepChange={setCourseWizardStep}
+            onSubmit={() => {
               const payload = normalizeCourseForm(courseForm);
 
               if (editingCourseId) {
@@ -841,130 +1003,8 @@ export function TeacherDashboardPage() {
 
               createCourseMutation.mutate(payload);
             }}
-          >
-            <TextInput
-              label="Título"
-              value={courseForm.titulo}
-              onChange={handleCourseTitleChange}
-            />
-
-            <TextInput
-              label="Slug"
-              value={courseForm.slug}
-              onChange={(value) => {
-                setIsCourseDirty(true);
-                setCourseForm((current) => ({
-                  ...current,
-                  slug: slugify(value),
-                }));
-              }}
-            />
-
-            <TextArea
-              label="Descrição"
-              value={courseForm.descricao}
-              onChange={(value) => {
-                setIsCourseDirty(true);
-                setCourseForm((current) => ({
-                  ...current,
-                  descricao: value,
-                }));
-              }}
-            />
-
-            <TextInput
-              label="Resumo curto"
-              value={courseForm.resumo ?? ''}
-              onChange={(value) => {
-                setIsCourseDirty(true);
-                setCourseForm((current) => ({
-                  ...current,
-                  resumo: value,
-                }));
-              }}
-            />
-
-            <div className="grid gap-4 sm:grid-cols-2">
-              <TextInput
-                label="Categoria"
-                value={courseForm.categoria ?? ''}
-                onChange={(value) => {
-                  setIsCourseDirty(true);
-                  setCourseForm((current) => ({
-                    ...current,
-                    categoria: value,
-                  }));
-                }}
-              />
-
-              <SelectInput
-                label="Nível"
-                value={courseForm.nivel}
-                onChange={(value) => {
-                  setIsCourseDirty(true);
-                  setCourseForm((current) => ({
-                    ...current,
-                    nivel: value as CourseLevel,
-                  }));
-                }}
-              />
-            </div>
-
-            <div className="grid gap-4 sm:grid-cols-2">
-              <NumberInput
-                label="Carga horária"
-                value={courseForm.cargaHoraria}
-                onChange={(value) => {
-                  setIsCourseDirty(true);
-                  setCourseForm((current) => ({
-                    ...current,
-                    cargaHoraria: value,
-                  }));
-                }}
-              />
-
-              <NumberInput
-                label="Preço"
-                value={courseForm.preco}
-                onChange={(value) => {
-                  setIsCourseDirty(true);
-                  setCourseForm((current) => ({
-                    ...current,
-                    preco: value,
-                    isPremium: value !== null && value > 0,
-                  }));
-                }}
-              />
-            </div>
-
-            <SelectStatusInput
-              label="Status editorial"
-              value={courseForm.status}
-              onChange={(value) => {
-                setIsCourseDirty(true);
-                setCourseForm((current) => ({
-                  ...current,
-                  status: value as CourseStatus,
-                }));
-              }}
-            />
-
-            <IsoButton
-              className="w-full"
-              disabled={
-                createCourseMutation.isPending ||
-                updateCourseMutation.isPending
-              }
-              type="submit"
-            >
-              {editingCourseId ? (
-                <Pencil className="h-4 w-4" />
-              ) : (
-                <Plus className="h-4 w-4" />
-              )}
-              {editingCourseId ? 'Salvar curso' : 'Criar curso'}
-            </IsoButton>
-          </form>
+            onTitleChange={handleCourseTitleChange}
+          />
         </LiquidCard>
 
         <LiquidCard>
@@ -980,8 +1020,28 @@ export function TeacherDashboardPage() {
               onChange={selectCourse}
             />
 
+            <div className="flex flex-col gap-2 rounded-3xl border border-[var(--border)] bg-[var(--surface-soft)] p-4 sm:flex-row sm:items-center sm:justify-between">
+              <div>
+                <p className="text-sm font-bold text-[var(--text)]">
+                  Montagem rápida
+                </p>
+                <p className="mt-1 text-xs leading-5 text-[var(--text-muted)]">
+                  Crie um módulo vazio agora e preencha os detalhes depois.
+                </p>
+              </div>
+              <button
+                className="iso-button-soft min-h-0 gap-2 px-4 py-3 text-sm"
+                disabled={!selectedCourseId || createModuleMutation.isPending}
+                onClick={handleCreateInlineModule}
+                type="button"
+              >
+                <Plus className="h-4 w-4" />
+                Adicionar módulo
+              </button>
+            </div>
+
             <form
-              className="rounded-3xl border border-[var(--border)] bg-[var(--surface-soft)] p-4"
+              className="hidden rounded-3xl border border-[var(--border)] bg-[var(--surface-soft)] p-4"
               onSubmit={(event) => {
                 event.preventDefault();
                 if (!selectedCourseId) {
@@ -1096,6 +1156,51 @@ export function TeacherDashboardPage() {
                 }
               }}
             />
+
+            <button
+              className="iso-button min-h-0 gap-2 px-4 py-3 text-sm"
+              disabled={!selectedModuleId}
+              onClick={startLessonCreate}
+              type="button"
+            >
+              <Plus className="h-4 w-4" />
+              Nova aula
+            </button>
+
+            <div className="rounded-3xl border border-[var(--border)] bg-[var(--surface-soft)] p-4">
+              <FormTitle
+                title="Adicionar várias aulas"
+                status={getEditorStatus(
+                  bulkLessonsText.trim().length > 0,
+                  createBulkLessonsMutation.isPending,
+                )}
+              />
+              <p className="mt-2 text-xs leading-5 text-[var(--text-muted)]">
+                Digite uma aula por linha. A ordem será criada a partir da
+                última aula do módulo selecionado.
+              </p>
+              <textarea
+                className="mt-4 min-h-28 w-full rounded-2xl border border-[var(--border)] bg-[var(--surface)] px-4 py-3 text-sm text-[var(--text)] outline-none transition focus:border-[var(--secondary-500)]"
+                placeholder={'Introdução ao tema\nExemplo resolvido\nExercícios guiados'}
+                value={bulkLessonsText}
+                onChange={(event) => setBulkLessonsText(event.target.value)}
+              />
+              <button
+                className="iso-button-soft mt-3 min-h-0 gap-2 px-4 py-3 text-sm"
+                disabled={
+                  !selectedModuleId ||
+                  bulkLessonsText.trim().length === 0 ||
+                  createBulkLessonsMutation.isPending
+                }
+                onClick={handleCreateBulkLessons}
+                type="button"
+              >
+                <Plus className="h-4 w-4" />
+                {createBulkLessonsMutation.isPending
+                  ? 'Criando aulas...'
+                  : 'Criar aulas em lote'}
+              </button>
+            </div>
 
             <form
               className="rounded-3xl border border-[var(--border)] bg-[var(--surface-soft)] p-4"
@@ -1539,6 +1644,20 @@ export function TeacherDashboardPage() {
                           >
                             Editar
                           </button>
+                          <button
+                            type="button"
+                            onClick={() =>
+                              duplicateModuleMutation.mutate({
+                                courseId: course.id,
+                                module,
+                                ordem: course.modulos.length + 1,
+                              })
+                            }
+                            className="iso-button-soft min-h-0 px-3 py-2 text-xs"
+                            disabled={duplicateModuleMutation.isPending}
+                          >
+                            Duplicar
+                          </button>
                         </div>
                       </div>
 
@@ -1584,6 +1703,19 @@ export function TeacherDashboardPage() {
                                 </button>
                                 <button
                                   type="button"
+                                  className="text-[11px] font-semibold text-[var(--iso-primary)] hover:underline"
+                                  disabled={duplicateLessonMutation.isPending}
+                                  onClick={() =>
+                                    duplicateLessonMutation.mutate({
+                                      module,
+                                      lesson,
+                                    })
+                                  }
+                                >
+                                  Duplicar
+                                </button>
+                                <button
+                                  type="button"
                                   className="inline-flex items-center gap-1 text-[11px] font-semibold text-[var(--text-soft)] hover:text-[var(--text)]"
                                   onClick={() => window.open(`/lessons/${lesson.id}`, '_blank')}
                                   title="Visualizar como aluno"
@@ -1604,7 +1736,639 @@ export function TeacherDashboardPage() {
           ))}
         </div>
       </LiquidCard>
+
+      {isLessonEditorOpen && (
+        <LessonEditorModal
+          attachmentFile={attachmentFile}
+          createExercisePending={createExerciseMutation.isPending}
+          deleteLessonPending={deleteLessonMutation.isPending}
+          editingLessonId={editingLessonId}
+          exerciseForm={exerciseForm}
+          isExerciseDirty={isExerciseDirty}
+          isLessonDirty={isLessonDirty}
+          lessonAttachments={lessonAttachments}
+          lessonExercises={lessonExercises}
+          lessonForm={lessonForm}
+          lessonPending={
+            createLessonMutation.isPending || updateLessonMutation.isPending
+          }
+          onAttachmentFileChange={setAttachmentFile}
+          onClose={() => resetLessonForm((selectedModule?.aulas.length ?? 0) + 1)}
+          onDeleteLesson={() => editingLessonId && handleDeleteLesson(editingLessonId)}
+          onExerciseChange={(patch) => {
+            setIsExerciseDirty(true);
+            setExerciseForm((current) => ({
+              ...current,
+              ...patch,
+            }));
+          }}
+          onLessonChange={(patch) => {
+            setIsLessonDirty(true);
+            setLessonForm((current) => ({
+              ...current,
+              ...patch,
+            }));
+          }}
+          onLessonTitleChange={handleLessonTitleChange}
+          onSaveExercise={() => {
+            if (!selectedLessonId) {
+              return;
+            }
+
+            createExerciseMutation.mutate({
+              ...exerciseForm,
+              resolucao: exerciseForm.resolucao || null,
+            });
+          }}
+          onSaveLesson={saveLessonFromModal}
+          onUploadAttachment={() => {
+            if (!selectedLessonId || !attachmentFile) {
+              return;
+            }
+
+            uploadAttachmentMutation.mutate(attachmentFile);
+          }}
+          selectedLessonId={selectedLessonId}
+          uploadAttachmentPending={uploadAttachmentMutation.isPending}
+        />
+      )}
     </section>
+  );
+}
+
+function LessonEditorModal({
+  attachmentFile,
+  createExercisePending,
+  deleteLessonPending,
+  editingLessonId,
+  exerciseForm,
+  isExerciseDirty,
+  isLessonDirty,
+  lessonAttachments,
+  lessonExercises,
+  lessonForm,
+  lessonPending,
+  onAttachmentFileChange,
+  onClose,
+  onDeleteLesson,
+  onExerciseChange,
+  onLessonChange,
+  onLessonTitleChange,
+  onSaveExercise,
+  onSaveLesson,
+  onUploadAttachment,
+  selectedLessonId,
+  uploadAttachmentPending,
+}: {
+  attachmentFile: File | null;
+  createExercisePending: boolean;
+  deleteLessonPending: boolean;
+  editingLessonId: string;
+  exerciseForm: ExerciseManagementInput;
+  isExerciseDirty: boolean;
+  isLessonDirty: boolean;
+  lessonAttachments: { id: string; nome: string; tipo: string }[];
+  lessonExercises: { id: string; titulo: string; dificuldade: string; xpRecompensa: number }[];
+  lessonForm: LessonManagementInput;
+  lessonPending: boolean;
+  onAttachmentFileChange: (file: File | null) => void;
+  onClose: () => void;
+  onDeleteLesson: () => void;
+  onExerciseChange: (patch: Partial<ExerciseManagementInput>) => void;
+  onLessonChange: (patch: Partial<LessonManagementInput>) => void;
+  onLessonTitleChange: (value: string) => void;
+  onSaveExercise: () => void;
+  onSaveLesson: () => void;
+  onUploadAttachment: () => void;
+  selectedLessonId: string;
+  uploadAttachmentPending: boolean;
+}) {
+  return (
+    <div className="fixed inset-0 z-50 overflow-y-auto bg-black/70 px-4 py-6 backdrop-blur-sm">
+      <div className="mx-auto w-full max-w-6xl rounded-[1.5rem] border border-[var(--border)] bg-[var(--surface)] shadow-2xl shadow-black/30">
+        <div className="sticky top-0 z-10 flex items-start justify-between gap-3 border-b border-[var(--border)] bg-[var(--surface)]/95 p-4 backdrop-blur sm:p-5">
+          <div>
+            <h2 className="text-2xl font-black text-[var(--text)]">
+              {editingLessonId ? 'Editar aula' : 'Nova aula'}
+            </h2>
+            <p
+              className={[
+                'mt-2 inline-flex rounded-full border px-2.5 py-1 text-[11px] font-bold',
+                getEditorStatus(isLessonDirty, lessonPending).className,
+              ].join(' ')}
+            >
+              {getEditorStatus(isLessonDirty, lessonPending).label}
+            </p>
+          </div>
+
+          <button
+            type="button"
+            onClick={onClose}
+            className="grid h-10 w-10 place-items-center rounded-2xl border border-[var(--border)] bg-[var(--surface-soft)] text-[var(--text)]"
+          >
+            <X className="h-4 w-4" />
+          </button>
+        </div>
+
+        <div className="grid gap-5 p-4 sm:p-5 xl:grid-cols-[1.1fr_0.9fr]">
+          <section className="rounded-3xl border border-[var(--border)] bg-[var(--surface-soft)] p-4">
+            <div className="grid gap-4 sm:grid-cols-2">
+              <TextInput
+                label="Título"
+                value={lessonForm.titulo}
+                onChange={onLessonTitleChange}
+              />
+              <TextInput
+                label="Slug"
+                value={lessonForm.slug}
+                onChange={(value) => onLessonChange({ slug: slugify(value) })}
+              />
+            </div>
+
+            <TextInput
+              label="URL do vídeo"
+              value={lessonForm.videoUrl ?? ''}
+              onChange={(videoUrl) => onLessonChange({ videoUrl })}
+            />
+
+            <div className="grid gap-4 sm:grid-cols-2">
+              <NumberInput
+                label="Duração em minutos"
+                value={lessonForm.duracao}
+                onChange={(duracao) => onLessonChange({ duracao })}
+              />
+              <NumberInput
+                label="Ordem"
+                value={lessonForm.ordem}
+                onChange={(ordem) => onLessonChange({ ordem: ordem ?? 1 })}
+              />
+            </div>
+
+            <TextArea
+              label="Conteúdo / roteiro"
+              value={lessonForm.conteudo ?? ''}
+              onChange={(conteudo) => onLessonChange({ conteudo })}
+            />
+
+            <label className="mt-3 flex items-center gap-3 text-sm font-semibold text-[var(--text-soft)]">
+              <input
+                type="checkbox"
+                checked={lessonForm.isGratuita}
+                onChange={(event) =>
+                  onLessonChange({ isGratuita: event.target.checked })
+                }
+              />
+              Aula gratuita
+            </label>
+
+            <div className="mt-5 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+              <IsoButton
+                disabled={lessonPending}
+                type="button"
+                variant="soft"
+                onClick={onSaveLesson}
+              >
+                {editingLessonId ? 'Salvar aula' : 'Criar aula'}
+              </IsoButton>
+
+              {editingLessonId && (
+                <button
+                  type="button"
+                  className="inline-flex items-center gap-2 rounded-2xl border border-red-500/30 bg-red-500/10 px-4 py-3 text-xs font-semibold text-red-300 transition hover:bg-red-500/20"
+                  onClick={onDeleteLesson}
+                  disabled={deleteLessonPending}
+                >
+                  <Trash2 className="h-3.5 w-3.5" />
+                  {deleteLessonPending ? 'Excluindo...' : 'Excluir aula'}
+                </button>
+              )}
+            </div>
+          </section>
+
+          <section className="grid gap-5">
+            <div className="rounded-3xl border border-[var(--border)] bg-[var(--surface-soft)] p-4">
+              <FormTitle
+                title="Anexos"
+                status={getEditorStatus(!!attachmentFile, uploadAttachmentPending)}
+              />
+              <input
+                type="file"
+                onChange={(event) =>
+                  onAttachmentFileChange(event.target.files?.[0] ?? null)
+                }
+                className="mt-4 h-12 w-full rounded-2xl border border-[var(--border)] bg-[var(--surface)] px-3 py-2 text-[var(--text)]"
+              />
+              <IsoButton
+                className="mt-4"
+                disabled={!selectedLessonId || !attachmentFile || uploadAttachmentPending}
+                type="button"
+                variant="soft"
+                onClick={onUploadAttachment}
+              >
+                <Paperclip className="h-4 w-4" />
+                {uploadAttachmentPending ? 'Enviando...' : 'Enviar anexo'}
+              </IsoButton>
+              <div className="mt-4 grid gap-2">
+                {lessonAttachments.slice(0, 4).map((attachment) => (
+                  <div
+                    key={attachment.id}
+                    className="flex items-center justify-between rounded-xl border border-[var(--border)] bg-[var(--surface)]/60 px-3 py-2"
+                  >
+                    <p className="truncate text-xs text-[var(--text-soft)]">
+                      {attachment.nome}
+                    </p>
+                    <span className="text-[10px] uppercase text-[var(--text-muted)]">
+                      {attachment.tipo}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            <div className="rounded-3xl border border-[var(--border)] bg-[var(--surface-soft)] p-4">
+              <FormTitle
+                title="Exercícios"
+                status={getEditorStatus(isExerciseDirty, createExercisePending)}
+              />
+              <div className="mt-4 grid gap-4">
+                <TextInput
+                  label="Título"
+                  value={exerciseForm.titulo}
+                  onChange={(titulo) => onExerciseChange({ titulo })}
+                />
+                <TextArea
+                  label="Enunciado"
+                  value={exerciseForm.enunciado}
+                  onChange={(enunciado) => onExerciseChange({ enunciado })}
+                />
+                <TextArea
+                  label="Resolução"
+                  value={exerciseForm.resolucao ?? ''}
+                  onChange={(resolucao) => onExerciseChange({ resolucao })}
+                />
+                <div className="grid gap-4 sm:grid-cols-2">
+                  <TextInput
+                    label="Dificuldade"
+                    value={exerciseForm.dificuldade}
+                    onChange={(dificuldade) => onExerciseChange({ dificuldade })}
+                  />
+                  <NumberInput
+                    label="XP"
+                    value={exerciseForm.xpRecompensa}
+                    onChange={(xpRecompensa) =>
+                      onExerciseChange({ xpRecompensa: xpRecompensa ?? 10 })
+                    }
+                  />
+                </div>
+              </div>
+              <IsoButton
+                className="mt-4"
+                disabled={!selectedLessonId || createExercisePending}
+                type="button"
+                variant="soft"
+                onClick={onSaveExercise}
+              >
+                <Plus className="h-4 w-4" />
+                {createExercisePending ? 'Criando...' : 'Criar exercício'}
+              </IsoButton>
+              <div className="mt-4 grid gap-2">
+                {lessonExercises.slice(0, 4).map((exercise) => (
+                  <div
+                    key={exercise.id}
+                    className="rounded-xl border border-[var(--border)] bg-[var(--surface)]/60 px-3 py-2"
+                  >
+                    <p className="truncate text-xs font-semibold text-[var(--text)]">
+                      {exercise.titulo}
+                    </p>
+                    <p className="mt-1 text-[11px] text-[var(--text-muted)]">
+                      {exercise.dificuldade} - {exercise.xpRecompensa} XP
+                    </p>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </section>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function CourseWizardForm({
+  course,
+  editingCourseId,
+  form,
+  isDirty,
+  isPending,
+  step,
+  onCancel,
+  onFieldChange,
+  onStepChange,
+  onSubmit,
+  onTitleChange,
+}: {
+  course?: TeacherCourse;
+  editingCourseId: string;
+  form: CourseManagementInput;
+  isDirty: boolean;
+  isPending: boolean;
+  step: number;
+  onCancel: () => void;
+  onFieldChange: (patch: Partial<CourseManagementInput>) => void;
+  onStepChange: (step: number) => void;
+  onSubmit: () => void;
+  onTitleChange: (value: string) => void;
+}) {
+  const lessons = course?.modulos.flatMap((module) => module.aulas) ?? [];
+  const checks = [
+    {
+      label: 'Básico preenchido',
+      ready:
+        form.titulo.trim().length >= 3 &&
+        form.slug.trim().length >= 3 &&
+        form.descricao.trim().length >= 10,
+    },
+    {
+      label: 'Comercial coerente',
+      ready: !form.isPremium || Number(form.preco ?? 0) > 0,
+    },
+    {
+      label: 'Página de venda preparada',
+      ready:
+        !!form.resumo?.trim() &&
+        !!form.beneficios?.trim() &&
+        !!form.publicoAlvo?.trim(),
+    },
+    {
+      label: 'Estrutura criada',
+      ready: (course?.modulos.length ?? 0) > 0 && lessons.length > 0,
+    },
+    {
+      label: 'Aula de prévia definida',
+      ready: lessons.some((lesson) => lesson.isGratuita),
+    },
+  ];
+  const canSaveDraft = checks[0].ready && checks[1].ready;
+  const canPublish = checks.slice(0, 4).every((check) => check.ready);
+  const canSubmit = form.status === 'PUBLICADO' ? canPublish : canSaveDraft;
+  const status = getEditorStatus(isDirty, isPending);
+  const steps = [
+    'Básico',
+    'Comercial',
+    'Página de venda',
+    'Estrutura',
+    'Publicação',
+  ];
+
+  function goNext() {
+    onStepChange(Math.min(step + 1, steps.length - 1));
+  }
+
+  function goBack() {
+    onStepChange(Math.max(step - 1, 0));
+  }
+
+  return (
+    <form
+      className="grid gap-5"
+      onSubmit={(event) => {
+        event.preventDefault();
+        onSubmit();
+      }}
+    >
+      <div className="flex items-start justify-between gap-3">
+        <div>
+          <h2 className="text-2xl font-black text-[var(--text)]">
+            {editingCourseId ? 'Editar curso' : 'Novo curso'}
+          </h2>
+          <p className="mt-2 text-sm leading-6 text-[var(--text-soft)]">
+            Crie a disciplina por etapas, do posicionamento comercial até o
+            checklist de publicação.
+          </p>
+          <span
+            className={[
+              'mt-3 inline-flex rounded-full border px-2.5 py-1 text-[11px] font-bold',
+              status.className,
+            ].join(' ')}
+          >
+            {status.label}
+          </span>
+        </div>
+
+        {editingCourseId && (
+          <IsoButton variant="soft" onClick={onCancel} type="button">
+            <X className="h-4 w-4" />
+            Cancelar
+          </IsoButton>
+        )}
+      </div>
+
+      <div className="grid gap-2 sm:grid-cols-5">
+        {steps.map((label, index) => (
+          <button
+            key={label}
+            type="button"
+            onClick={() => onStepChange(index)}
+            className={[
+              'min-h-11 rounded-2xl border px-3 text-left text-xs font-bold transition',
+              step === index
+                ? 'border-[var(--secondary-500)] bg-[var(--iso-primary-soft)] text-[var(--iso-primary)]'
+                : 'border-[var(--border)] bg-[var(--surface-soft)] text-[var(--text-muted)] hover:text-[var(--text)]',
+            ].join(' ')}
+          >
+            <span className="block text-[10px] opacity-70">Etapa {index + 1}</span>
+            {label}
+          </button>
+        ))}
+      </div>
+
+      {step === 0 && (
+        <div className="grid gap-4">
+          <TextInput
+            label="Título"
+            value={form.titulo}
+            onChange={onTitleChange}
+          />
+          <TextInput
+            label="Slug"
+            value={form.slug}
+            onChange={(value) => onFieldChange({ slug: slugify(value) })}
+          />
+          <TextArea
+            label="Descrição"
+            value={form.descricao}
+            onChange={(descricao) => onFieldChange({ descricao })}
+          />
+          <div className="grid gap-4 sm:grid-cols-3">
+            <TextInput
+              label="Categoria"
+              value={form.categoria ?? ''}
+              onChange={(categoria) => onFieldChange({ categoria })}
+            />
+            <SelectInput
+              label="Nível"
+              value={form.nivel}
+              onChange={(nivel) => onFieldChange({ nivel: nivel as CourseLevel })}
+            />
+            <NumberInput
+              label="Carga horária"
+              value={form.cargaHoraria}
+              onChange={(cargaHoraria) => onFieldChange({ cargaHoraria })}
+            />
+          </div>
+        </div>
+      )}
+
+      {step === 1 && (
+        <div className="grid gap-4">
+          <label className="grid gap-2 text-sm font-semibold text-[var(--text-soft)]">
+            Modelo de venda
+            <select
+              value={form.isPremium ? 'premium' : 'free'}
+              onChange={(event) =>
+                onFieldChange({
+                  isPremium: event.target.value === 'premium',
+                  preco:
+                    event.target.value === 'premium'
+                      ? form.preco
+                      : null,
+                })
+              }
+              className="h-12 rounded-2xl border border-[var(--border)] bg-[var(--surface-soft)] px-4 text-[var(--text)] outline-none transition focus:border-[var(--secondary-500)]"
+            >
+              <option value="premium">Premium</option>
+              <option value="free">Gratuito</option>
+            </select>
+          </label>
+          <div className="grid gap-4 sm:grid-cols-2">
+            <NumberInput
+              label="Preço"
+              value={form.preco}
+              onChange={(preco) =>
+                onFieldChange({
+                  preco,
+                  isPremium: preco !== null && preco > 0,
+                })
+              }
+            />
+            <TextInput
+              label="Capa do curso"
+              value={form.imagem ?? ''}
+              onChange={(imagem) => onFieldChange({ imagem })}
+            />
+          </div>
+          {form.imagem && (
+            <img
+              alt=""
+              className="h-44 rounded-2xl border border-[var(--border)] object-cover"
+              src={form.imagem}
+            />
+          )}
+        </div>
+      )}
+
+      {step === 2 && (
+        <div className="grid gap-4">
+          <TextArea
+            label="Resumo curto"
+            value={form.resumo ?? ''}
+            onChange={(resumo) => onFieldChange({ resumo })}
+          />
+          <TextArea
+            label="Benefícios"
+            value={form.beneficios ?? ''}
+            onChange={(beneficios) => onFieldChange({ beneficios })}
+          />
+          <TextArea
+            label="Público-alvo"
+            value={form.publicoAlvo ?? ''}
+            onChange={(publicoAlvo) => onFieldChange({ publicoAlvo })}
+          />
+        </div>
+      )}
+
+      {step === 3 && (
+        <div className="rounded-3xl border border-[var(--border)] bg-[var(--surface-soft)] p-5">
+          <h3 className="font-bold text-[var(--text)]">Estrutura da trilha</h3>
+          <p className="mt-2 text-sm leading-6 text-[var(--text-soft)]">
+            Salve o curso e use o painel ao lado para criar módulos e aulas.
+            A estrutura atual tem {course?.modulos.length ?? 0} módulos e{' '}
+            {lessons.length} aulas.
+          </p>
+          <div className="mt-4 grid gap-2">
+            {(course?.modulos ?? []).map((module) => (
+              <div
+                key={module.id}
+                className="rounded-2xl border border-[var(--border)] bg-[var(--surface)] px-4 py-3"
+              >
+                <p className="font-semibold text-[var(--text)]">{module.titulo}</p>
+                <p className="mt-1 text-xs text-[var(--text-muted)]">
+                  {module.aulas.length} aulas
+                </p>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {step === 4 && (
+        <div className="grid gap-3">
+          <SelectStatusInput
+            label="Status editorial"
+            value={form.status}
+            onChange={(status) => onFieldChange({ status: status as CourseStatus })}
+          />
+          <div className="grid gap-2">
+            {checks.map((check) => (
+              <div
+                key={check.label}
+                className="flex items-center justify-between rounded-2xl border border-[var(--border)] bg-[var(--surface-soft)] px-4 py-3 text-sm"
+              >
+                <span className="font-semibold text-[var(--text-soft)]">
+                  {check.label}
+                </span>
+                <IsoBadge variant={check.ready ? 'success' : 'orange'}>
+                  {check.ready ? 'OK' : 'Pendente'}
+                </IsoBadge>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      <div className="flex flex-col gap-3 border-t border-[var(--border)] pt-4 sm:flex-row sm:items-center sm:justify-between">
+        <button
+          type="button"
+          className="iso-button-soft min-h-0 px-4 py-3 text-sm"
+          disabled={step === 0}
+          onClick={goBack}
+        >
+          Voltar
+        </button>
+        <div className="flex flex-col gap-3 sm:flex-row">
+          {step < steps.length - 1 && (
+            <button
+              type="button"
+              className="iso-button-soft min-h-0 px-4 py-3 text-sm"
+              onClick={goNext}
+            >
+              Próxima etapa
+            </button>
+          )}
+          <IsoButton
+            disabled={isPending || !canSubmit}
+            type="submit"
+          >
+            {editingCourseId ? (
+              <Pencil className="h-4 w-4" />
+            ) : (
+              <Plus className="h-4 w-4" />
+            )}
+            {editingCourseId ? 'Salvar curso' : 'Criar curso'}
+          </IsoButton>
+        </div>
+      </div>
+    </form>
   );
 }
 

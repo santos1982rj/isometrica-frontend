@@ -28,6 +28,8 @@ export type TeacherCourse = {
   descricao: string;
   resumo: string | null;
   imagem: string | null;
+  beneficios: string | null;
+  publicoAlvo: string | null;
   isPremium: boolean;
   preco: number | null;
   status: CourseStatus;
@@ -48,6 +50,8 @@ export type CourseManagementInput = {
   descricao: string;
   resumo: string | null;
   imagem: string | null;
+  beneficios: string | null;
+  publicoAlvo: string | null;
   isPremium: boolean;
   preco: number | null;
   status: CourseStatus;
