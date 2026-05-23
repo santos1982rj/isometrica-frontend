@@ -425,7 +425,7 @@ export function CourseDetailsPage() {
 
                   const firstLesson = course.modulos[0]?.aulas[0];
                   if (firstLesson) {
-                    navigate(`/lessons/${firstLesson.id}`);
+                    navigate(`/courses/${course.slug}/lessons/${firstLesson.slug}`);
                   }
                 }}
               >
@@ -601,7 +601,7 @@ export function CourseDetailsPage() {
                       {paymentApproved && firstLesson && (
                         <button
                           className="iso-button-primary w-full gap-2 px-4"
-                          onClick={() => navigate(`/lessons/${firstLesson.id}`)}
+                          onClick={() => navigate(`/courses/${course.slug}/lessons/${firstLesson.slug}`)}
                           type="button"
                         >
                           <PlayCircle className="h-4 w-4" />
@@ -801,7 +801,7 @@ export function CourseDetailsPage() {
                     type="button"
                     onClick={() => {
                       if (token) {
-                        navigate(`/lessons/${lesson.id}`);
+                        navigate(`/courses/${course.slug}/lessons/${lesson.slug}`);
                         return;
                       }
 

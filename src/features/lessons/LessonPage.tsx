@@ -41,7 +41,7 @@ type LessonTab = 'content' | 'attachments' | 'exercises' | 'notes';
 export function LessonPage() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
-  const { id } = useParams();
+  const { id, courseSlug, lessonSlug } = useParams();
   const token = useAuthStore((state) => state.token);
 
   const [activeTab, setActiveTab] = useState<LessonTab>('content');
@@ -53,15 +53,35 @@ export function LessonPage() {
     message: string;
   } | null>(null);
 
+  const { data: routeCourse, isLoading: isLoadingRouteCourse } = useQuery({
+    queryKey: ['course-details', courseSlug],
+    queryFn: () => getCourseBySlug(courseSlug!),
+    enabled: !id && !!courseSlug,
+  });
+
+  const resolvedLessonId = useMemo(() => {
+    if (id) {
+      return id;
+    }
+
+    if (!routeCourse || !lessonSlug) {
+      return undefined;
+    }
+
+    return routeCourse.modulos
+      .flatMap((module) => module.aulas)
+      .find((lessonItem) => lessonItem.slug === lessonSlug)?.id;
+  }, [id, lessonSlug, routeCourse]);
+
   const {
     data: lesson,
     isLoading,
     isError,
     error: lessonQueryError,
   } = useQuery({
-    queryKey: ['lesson', id],
-    queryFn: () => getLessonById(id!),
-    enabled: !!id,
+    queryKey: ['lesson', resolvedLessonId],
+    queryFn: () => getLessonById(resolvedLessonId!),
+    enabled: !!resolvedLessonId,
   });
 
   const { data: course } = useQuery({
@@ -77,11 +97,11 @@ export function LessonPage() {
   });
 
   const studyFeaturesEnabled = !!token && !lesson?.locked;
-  const { data: exercises = [] } = useLessonExercises(id, studyFeaturesEnabled);
-  const { data: attachments = [] } = useLessonAttachments(id, studyFeaturesEnabled);
+  const { data: exercises = [] } = useLessonExercises(resolvedLessonId, studyFeaturesEnabled);
+  const { data: attachments = [] } = useLessonAttachments(resolvedLessonId, studyFeaturesEnabled);
 
   const completeLessonMutation = useMutation({
-    mutationFn: () => completeLesson(id!),
+    mutationFn: () => completeLesson(resolvedLessonId!),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['progress'] });
       queryClient.invalidateQueries({ queryKey: ['analytics'] });
@@ -193,8 +213,16 @@ export function LessonPage() {
     };
   }, [hasUnsavedNotes]);
 
-  if (isLoading) {
+  if (isLoading || isLoadingRouteCourse) {
     return <LessonPageSkeleton />;
+  }
+
+  if (!id && courseSlug && lessonSlug && routeCourse && !resolvedLessonId) {
+    return (
+      <LiquidCard>
+        <p className="font-semibold text-red-400">Aula não encontrada neste curso.</p>
+      </LiquidCard>
+    );
   }
 
   if (isError || !lesson) {
@@ -310,6 +338,13 @@ export function LessonPage() {
       : undefined;
 
   const notesSavedAt = notesSavedAtByLesson[lesson.id];
+  const lessonUrl = (targetLesson: { id: string; slug: string }) =>
+    course ? `/courses/${course.slug}/lessons/${targetLesson.slug}` : `/lessons/${targetLesson.id}`;
+
+  const navigateToLessonById = (lessonId: string) => {
+    const targetLesson = moduleLessons.find((item) => item.id === lessonId);
+    navigateWithUnsavedGuard(targetLesson ? lessonUrl(targetLesson) : `/lessons/${lessonId}`);
+  };
 
   const navigateWithUnsavedGuard = (to: string) => {
     if (!hasUnsavedNotes) {
@@ -568,13 +603,13 @@ export function LessonPage() {
                 currentLessonId={lesson.id}
                 lessons={moduleLessons}
                 progress={progress}
-                onNavigateLesson={(lessonId) => navigateWithUnsavedGuard(`/lessons/${lessonId}`)}
+                onNavigateLesson={navigateToLessonById}
               />
 
               <LessonNavigationCard
                 previousLesson={previousLesson}
                 nextLesson={nextLesson}
-                onNavigateLesson={(lessonId) => navigateWithUnsavedGuard(`/lessons/${lessonId}`)}
+                onNavigateLesson={navigateToLessonById}
               />
             </>
           )}

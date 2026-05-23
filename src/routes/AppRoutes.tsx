@@ -99,6 +99,7 @@ export function AppRoutes() {
             />
             <Route path="/study-mode" element={<StudyModePage />} />
             <Route path="/lessons/:id" element={<LessonPage />} />
+            <Route path="/courses/:courseSlug/lessons/:lessonSlug" element={<LessonPage />} />
             <Route path="/analytics" element={<AnalyticsPage />} />
             <Route path="/profile" element={<ProfilePage />} />
             <Route path="/ranking" element={<RankingPage />} />
