@@ -16,6 +16,7 @@ import { LiquidCard } from '../../components/ui/LiquidCard';
 
 import {
   getAdminOverview,
+  getAdminPlatformSettings,
   getAdminTrackingSettings,
   listAdminCourses,
   listAdminTransactions,
@@ -24,6 +25,7 @@ import {
   updateAdminCourseCommercial,
   updateAdminCourseSales,
   updateAdminLessonPreview,
+  updateAdminPlatformSettings,
   updateAdminTrackingSettings,
   updateAdminUserAccess,
 } from './admin.service';
@@ -56,6 +58,10 @@ export function AdminDashboardPage() {
     queryKey: ['admin', 'settings', 'tracking'],
     queryFn: getAdminTrackingSettings,
   });
+  const { data: platformSettings } = useQuery({
+    queryKey: ['admin', 'settings', 'platform'],
+    queryFn: getAdminPlatformSettings,
+  });
   const [courseStatusFilter, setCourseStatusFilter] = useState<
     'ALL' | 'RASCUNHO' | 'PUBLICADO' | 'ARQUIVADO'
   >('ALL');
@@ -68,6 +74,18 @@ export function AdminDashboardPage() {
     googleTagManagerId: '',
     googleAnalyticsMeasurementId: '',
     metaPixelId: '',
+  });
+  const [platformForm, setPlatformForm] = useState({
+    platformName: '',
+    logoUrl: '',
+    faviconUrl: '',
+    supportWhatsapp: '',
+    supportEmail: '',
+    instagramUrl: '',
+    youtubeUrl: '',
+    linkedinUrl: '',
+    termsContent: '',
+    privacyContent: '',
   });
 
   useEffect(() => {
@@ -82,6 +100,25 @@ export function AdminDashboardPage() {
       metaPixelId: trackingSettings.metaPixelId ?? '',
     });
   }, [trackingSettings]);
+
+  useEffect(() => {
+    if (!platformSettings) {
+      return;
+    }
+
+    setPlatformForm({
+      platformName: platformSettings.platformName ?? '',
+      logoUrl: platformSettings.logoUrl ?? '',
+      faviconUrl: platformSettings.faviconUrl ?? '',
+      supportWhatsapp: platformSettings.supportWhatsapp ?? '',
+      supportEmail: platformSettings.supportEmail ?? '',
+      instagramUrl: platformSettings.instagramUrl ?? '',
+      youtubeUrl: platformSettings.youtubeUrl ?? '',
+      linkedinUrl: platformSettings.linkedinUrl ?? '',
+      termsContent: platformSettings.termsContent ?? '',
+      privacyContent: platformSettings.privacyContent ?? '',
+    });
+  }, [platformSettings]);
 
   const updateUserAccessMutation = useMutation({
     mutationFn: ({
@@ -176,10 +213,23 @@ export function AdminDashboardPage() {
       });
     },
   });
+  const updatePlatformSettingsMutation = useMutation({
+    mutationFn: updateAdminPlatformSettings,
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({
+        queryKey: ['admin', 'settings', 'platform'],
+      });
+    },
+  });
 
   function handleTrackingSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     updateTrackingSettingsMutation.mutate(trackingForm);
+  }
+
+  function handlePlatformSubmit(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    updatePlatformSettingsMutation.mutate(platformForm);
   }
 
   const filteredCourses = useMemo(
@@ -609,6 +659,152 @@ export function AdminDashboardPage() {
 
       <LiquidCard>
         <div className="flex flex-wrap items-start justify-between gap-4">
+          <div className="flex items-center gap-3">
+            <span className="flex h-11 w-11 items-center justify-center rounded-2xl border border-[var(--border)] bg-[var(--surface-soft)] text-cyan-300">
+              <Settings2 className="h-5 w-5" />
+            </span>
+            <div>
+              <h2 className="text-2xl font-black text-[var(--text)]">
+                Configurações da plataforma
+              </h2>
+              <p className="mt-1 text-sm text-[var(--text-soft)]">
+                Identidade, contato, redes sociais e textos legais exibidos ao público.
+              </p>
+            </div>
+          </div>
+
+          {platformSettings?.updatedAt && (
+            <IsoBadge variant="success">
+              Atualizado em{' '}
+              {new Date(platformSettings.updatedAt).toLocaleDateString('pt-BR')}
+            </IsoBadge>
+          )}
+        </div>
+
+        <form className="mt-6 grid gap-4" onSubmit={handlePlatformSubmit}>
+          <div className="grid gap-4 lg:grid-cols-3">
+            <TrackingInput
+              label="Nome da plataforma"
+              helper="Exibido em marca, títulos e textos públicos"
+              value={platformForm.platformName}
+              placeholder="ISOMÉTRICA"
+              onChange={(platformName) =>
+                setPlatformForm((current) => ({ ...current, platformName }))
+              }
+            />
+            <TrackingInput
+              label="Logo"
+              helper="URL pública da imagem da marca"
+              value={platformForm.logoUrl}
+              placeholder="https://..."
+              onChange={(logoUrl) =>
+                setPlatformForm((current) => ({ ...current, logoUrl }))
+              }
+            />
+            <TrackingInput
+              label="Favicon"
+              helper="URL pública do ícone do navegador"
+              value={platformForm.faviconUrl}
+              placeholder="https://..."
+              onChange={(faviconUrl) =>
+                setPlatformForm((current) => ({ ...current, faviconUrl }))
+              }
+            />
+            <TrackingInput
+              label="WhatsApp suporte"
+              helper="Número ou link de atendimento"
+              value={platformForm.supportWhatsapp}
+              placeholder="+55 21 99999-9999"
+              onChange={(supportWhatsapp) =>
+                setPlatformForm((current) => ({ ...current, supportWhatsapp }))
+              }
+            />
+            <TrackingInput
+              label="E-mail de contato"
+              helper="Canal público de suporte"
+              value={platformForm.supportEmail}
+              placeholder="suporte@isometrica.com"
+              onChange={(supportEmail) =>
+                setPlatformForm((current) => ({ ...current, supportEmail }))
+              }
+            />
+            <TrackingInput
+              label="Instagram"
+              helper="URL do perfil"
+              value={platformForm.instagramUrl}
+              placeholder="https://instagram.com/..."
+              onChange={(instagramUrl) =>
+                setPlatformForm((current) => ({ ...current, instagramUrl }))
+              }
+            />
+            <TrackingInput
+              label="YouTube"
+              helper="URL do canal"
+              value={platformForm.youtubeUrl}
+              placeholder="https://youtube.com/..."
+              onChange={(youtubeUrl) =>
+                setPlatformForm((current) => ({ ...current, youtubeUrl }))
+              }
+            />
+            <TrackingInput
+              label="LinkedIn"
+              helper="URL da página"
+              value={platformForm.linkedinUrl}
+              placeholder="https://linkedin.com/company/..."
+              onChange={(linkedinUrl) =>
+                setPlatformForm((current) => ({ ...current, linkedinUrl }))
+              }
+            />
+          </div>
+
+          <div className="grid gap-4 lg:grid-cols-2">
+            <TextAreaInput
+              label="Termos de uso"
+              value={platformForm.termsContent}
+              placeholder="Cole aqui os termos de uso públicos."
+              onChange={(termsContent) =>
+                setPlatformForm((current) => ({ ...current, termsContent }))
+              }
+            />
+            <TextAreaInput
+              label="Política de privacidade"
+              value={platformForm.privacyContent}
+              placeholder="Cole aqui a política de privacidade pública."
+              onChange={(privacyContent) =>
+                setPlatformForm((current) => ({ ...current, privacyContent }))
+              }
+            />
+          </div>
+
+          <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+            <p className="text-sm text-[var(--text-soft)]">
+              Campos vazios usam os textos e a identidade padrão da plataforma.
+            </p>
+            <button
+              type="submit"
+              className="iso-button min-h-0 px-4 py-3"
+              disabled={updatePlatformSettingsMutation.isPending}
+            >
+              {updatePlatformSettingsMutation.isPending
+                ? 'Salvando...'
+                : 'Salvar configurações'}
+            </button>
+          </div>
+          {updatePlatformSettingsMutation.isError && (
+            <p className="text-sm font-semibold text-red-300">
+              Não foi possível salvar. Revise URLs e e-mail.
+            </p>
+          )}
+          {updatePlatformSettingsMutation.isSuccess && (
+            <p className="text-sm font-semibold text-emerald-300">
+              Configurações salvas.
+            </p>
+          )}
+        </form>
+      </LiquidCard>
+
+      <LiquidCard>
+        <div className="flex flex-wrap items-start justify-between gap-4">
           <div>
             <div className="flex items-center gap-3">
               <span className="flex h-11 w-11 items-center justify-center rounded-2xl border border-[var(--border)] bg-[var(--surface-soft)] text-cyan-300">
@@ -790,6 +986,32 @@ function TrackingInput({
         className="h-12 rounded-2xl border border-[var(--border)] bg-[var(--surface)] px-4 font-semibold text-[var(--text)] outline-none placeholder:text-[var(--text-muted)] focus:border-cyan-300/60"
       />
       <span className="text-sm text-[var(--text-soft)]">{helper}</span>
+    </label>
+  );
+}
+
+function TextAreaInput({
+  label,
+  value,
+  placeholder,
+  onChange,
+}: {
+  label: string;
+  value: string;
+  placeholder: string;
+  onChange: (value: string) => void;
+}) {
+  return (
+    <label className="grid gap-2 rounded-3xl border border-[var(--border)] bg-[var(--surface-soft)] p-4">
+      <span className="text-xs font-bold uppercase text-[var(--text-muted)]">
+        {label}
+      </span>
+      <textarea
+        value={value}
+        placeholder={placeholder}
+        onChange={(event) => onChange(event.target.value)}
+        className="min-h-60 rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-4 text-sm leading-6 text-[var(--text)] outline-none placeholder:text-[var(--text-muted)] focus:border-cyan-300/60"
+      />
     </label>
   );
 }

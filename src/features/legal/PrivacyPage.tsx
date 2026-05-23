@@ -1,6 +1,30 @@
+import { useQuery } from '@tanstack/react-query';
+
+import { getPublicPlatformSettings } from '../platform/platform.service';
 import { LegalPage } from './components/LegalPage';
 
+function renderConfiguredText(content: string) {
+  return content
+    .split(/\n{2,}/)
+    .map((paragraph) => paragraph.trim())
+    .filter(Boolean)
+    .map((paragraph) => <p key={paragraph}>{paragraph}</p>);
+}
+
 export function PrivacyPage() {
+  const { data: platform } = useQuery({
+    queryKey: ['platform-settings'],
+    queryFn: getPublicPlatformSettings,
+  });
+
+  if (platform?.privacyContent) {
+    return (
+      <LegalPage title="Política de privacidade" subtitle="Como a plataforma usa e protege dados.">
+        <section>{renderConfiguredText(platform.privacyContent)}</section>
+      </LegalPage>
+    );
+  }
+
   return (
     <LegalPage title="Política de privacidade" subtitle="Como a plataforma usa dados de conta, estudo, compra e medição.">
       <section>

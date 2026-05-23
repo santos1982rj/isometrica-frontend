@@ -5,11 +5,13 @@ import type {
   AdminOverview,
   AdminTransaction,
   AdminTrackingSettings,
+  AdminPlatformSettings,
   AdminUser,
   UpdateAdminCourseStatusInput,
   UpdateAdminCourseCommercialInput,
   UpdateAdminCourseSalesInput,
   UpdateAdminTrackingSettingsInput,
+  UpdateAdminPlatformSettingsInput,
 } from './admin.types';
 
 export async function getAdminOverview() {
@@ -116,6 +118,25 @@ export async function updateAdminTrackingSettings(
 ) {
   const response = await api.put<{ settings: AdminTrackingSettings }>(
     '/admin/settings/tracking',
+    data,
+  );
+
+  return response.data.settings;
+}
+
+export async function getAdminPlatformSettings() {
+  const response = await api.get<{ settings: AdminPlatformSettings }>(
+    '/admin/settings/platform',
+  );
+
+  return response.data.settings;
+}
+
+export async function updateAdminPlatformSettings(
+  data: UpdateAdminPlatformSettingsInput,
+) {
+  const response = await api.put<{ settings: AdminPlatformSettings }>(
+    '/admin/settings/platform',
     data,
   );
 

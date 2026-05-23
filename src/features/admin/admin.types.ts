@@ -111,3 +111,30 @@ export type UpdateAdminTrackingSettingsInput = {
   googleAnalyticsMeasurementId: string;
   metaPixelId: string;
 };
+
+export type AdminPlatformSettings = {
+  platformName: string | null;
+  logoUrl: string | null;
+  faviconUrl: string | null;
+  supportWhatsapp: string | null;
+  supportEmail: string | null;
+  instagramUrl: string | null;
+  youtubeUrl: string | null;
+  linkedinUrl: string | null;
+  termsContent: string | null;
+  privacyContent: string | null;
+  updatedAt: string | null;
+};
+
+export type UpdateAdminPlatformSettingsInput = {
+  platformName: string;
+  logoUrl: string;
+  faviconUrl: string;
+  supportWhatsapp: string;
+  supportEmail: string;
+  instagramUrl: string;
+  youtubeUrl: string;
+  linkedinUrl: string;
+  termsContent: string;
+  privacyContent: string;
+};

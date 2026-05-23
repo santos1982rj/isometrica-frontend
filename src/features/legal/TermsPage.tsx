@@ -1,8 +1,31 @@
 import { Link } from 'react-router-dom';
+import { useQuery } from '@tanstack/react-query';
 
+import { getPublicPlatformSettings } from '../platform/platform.service';
 import { LegalPage } from './components/LegalPage';
 
+function renderConfiguredText(content: string) {
+  return content
+    .split(/\n{2,}/)
+    .map((paragraph) => paragraph.trim())
+    .filter(Boolean)
+    .map((paragraph) => <p key={paragraph}>{paragraph}</p>);
+}
+
 export function TermsPage() {
+  const { data: platform } = useQuery({
+    queryKey: ['platform-settings'],
+    queryFn: getPublicPlatformSettings,
+  });
+
+  if (platform?.termsContent) {
+    return (
+      <LegalPage title="Termos de uso" subtitle="Regras de acesso e uso da plataforma.">
+        <section>{renderConfiguredText(platform.termsContent)}</section>
+      </LegalPage>
+    );
+  }
+
   return (
     <LegalPage title="Termos de uso" subtitle="Regras básicas para acesso à ISOMÉTRICA.">
       <section>
